@@ -1,0 +1,193 @@
+{
+  "Comment": "Luminis glow framework: light-sensitive, multi-color glow for eyes. Glow mask = alpha of the eye mask texture (BC7). Glow map = alpha of the eye color texture (a hue: 0 red, 85 green, 170 blue on a 0-255 scale). Settings with intensity 0 never glow.",
+  "Constants": {
+    "2657300338": [
+      {
+        "Offset": 0,
+        "Length": 3,
+        "Type": "Color",
+        "Group": "Luminis Glow",
+        "Label": "Glow tint",
+        "Description": "Multiplies the glow color. White keeps the glow's own colors."
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Glow",
+        "Label": "Glow intensity",
+        "Description": "How bright the glow is. 0 turns Luminis off for this material. Lower values keep painted designs crisp; higher values bloom.",
+        "Minimum": 0,
+        "Maximum": 10,
+        "Speed": 0.02,
+        "Precision": 2
+      }
+    ],
+    "2469346156": [
+      {
+        "Offset": 0,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Glow",
+        "Label": "Dark start",
+        "Description": "Light level below which the glow is fully on (in dark mode). Lower = only glows in deeper darkness.",
+        "Minimum": 0,
+        "Maximum": 2,
+        "Speed": 0.002,
+        "Precision": 3
+      },
+      {
+        "Offset": 1,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Glow",
+        "Label": "Dark end",
+        "Description": "Light level above which the glow is fully off (in dark mode). The gap between start and end sets how gradually it fades.",
+        "Minimum": 0,
+        "Maximum": 2,
+        "Speed": 0.002,
+        "Precision": 3
+      },
+      {
+        "Offset": 2,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Glow",
+        "Label": "Glow mode",
+        "Description": "When the glow appears.",
+        "Values": [
+          {
+            "Label": "Always on",
+            "Value": 0,
+            "Description": "Ignores lighting."
+          },
+          {
+            "Label": "Glow in darkness",
+            "Value": 1,
+            "Description": "Fades in as light drops."
+          },
+          {
+            "Label": "Glow in light",
+            "Value": 2,
+            "Description": "Fades in as light rises."
+          }
+        ]
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Glow",
+        "Label": "Light sensitivity",
+        "Description": "How strongly the mode applies. 0 = always on regardless of mode, 1 = full effect.",
+        "Minimum": 0,
+        "Maximum": 1,
+        "Speed": 0.01,
+        "Precision": 3
+      }
+    ],
+    "654612545": [
+      {
+        "Offset": 0,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Glow",
+        "Label": "Color source",
+        "Description": "0 = tint only, 1 = the eye's own color, 2 = glow map (hue painted in the color texture's alpha). In-between values blend, e.g. 1.5 for pastel glow-map colors.",
+        "Minimum": 0,
+        "Maximum": 2,
+        "Speed": 0.01,
+        "Precision": 2
+      },
+      {
+        "Offset": 1,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Glow",
+        "Label": "Area mix",
+        "Description": "0 = react to light hitting the eye (shadows, facing a lamp), 1 = react to the area's overall brightness only (steady while turning). 0.5 is a good balance.",
+        "Minimum": 0,
+        "Maximum": 1,
+        "Speed": 0.01,
+        "Precision": 3
+      },
+      {
+        "Type": "Hidden",
+        "Offset": 8,
+        "Length": 4
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Glow",
+        "Label": "Debug view",
+        "Description": "Replaces the eye with diagnostic information. Set back to Off when done.",
+        "Values": [
+          {
+            "Label": "Off",
+            "Value": 0
+          },
+          {
+            "Label": "Glow mask",
+            "Value": 1,
+            "Description": "White where the mask allows glow."
+          },
+          {
+            "Label": "Light level",
+            "Value": 2,
+            "Description": "Gray value of the light the shader measures."
+          },
+          {
+            "Label": "Light gate",
+            "Value": 3,
+            "Description": "White = glow fully on, black = off."
+          },
+          {
+            "Label": "Glow only",
+            "Value": 4,
+            "Description": "Shows only the glow, without the lit eye."
+          }
+        ]
+      }
+    ],
+    "2602692533": [
+      {
+        "Offset": 0,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Glow",
+        "Label": "Detail",
+        "Description": "0 = flat glow, 1 = the eye's own light and dark pattern shows through the glow (pupil, fibers, painted shading).",
+        "Minimum": 0,
+        "Maximum": 1,
+        "Speed": 0.01,
+        "Precision": 3
+      },
+      {
+        "Offset": 1,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Glow",
+        "Label": "Detail gain",
+        "Description": "Brightens the detail pattern. Raise it if detail makes the glow too dim.",
+        "Minimum": 0,
+        "Maximum": 8,
+        "Speed": 0.02,
+        "Precision": 2
+      },
+      {
+        "Type": "Hidden",
+        "Offset": 8,
+        "Length": 8
+      }
+    ],
+    "3729917104": [
+      {
+        "Offset": 0,
+        "Length": 16,
+        "Type": "Hidden"
+      }
+    ]
+  }
+}

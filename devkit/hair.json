@@ -1,0 +1,259 @@
+{
+  "Comment": "Luminis glow framework for hair. Glow area picks where the hair glows: the whole hair, only the highlight streaks, only the main color, or a painted Luminis texture (alpha = glow mask, RGB = glow colors) added to the material with mtrl_luminis.py --glow-texture. Settings with intensity 0 never glow.",
+  "Constants": {
+    "2657300338": [
+      {
+        "Offset": 0,
+        "Length": 3,
+        "Type": "Color",
+        "Group": "Luminis Glow",
+        "Label": "Glow tint",
+        "Description": "Multiplies the glow color. White keeps the glow's own colors. With 'Separate highlight color' on, this colors the main hair only."
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Glow",
+        "Label": "Glow intensity",
+        "Description": "How bright the glow is. 0 turns Luminis off for this material. Lower values keep painted designs crisp; higher values bloom.",
+        "Minimum": 0,
+        "Maximum": 10,
+        "Speed": 0.02,
+        "Precision": 2
+      }
+    ],
+    "2469346156": [
+      {
+        "Offset": 0,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Glow",
+        "Label": "Dark start",
+        "Description": "Light level below which the glow is fully on (in dark mode). Lower = only glows in deeper darkness.",
+        "Minimum": 0,
+        "Maximum": 2,
+        "Speed": 0.002,
+        "Precision": 3
+      },
+      {
+        "Offset": 1,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Glow",
+        "Label": "Dark end",
+        "Description": "Light level above which the glow is fully off (in dark mode). The gap between start and end sets how gradually it fades.",
+        "Minimum": 0,
+        "Maximum": 2,
+        "Speed": 0.002,
+        "Precision": 3
+      },
+      {
+        "Offset": 2,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Glow",
+        "Label": "Glow mode",
+        "Description": "When the glow appears.",
+        "Values": [
+          {
+            "Label": "Always on",
+            "Value": 0,
+            "Description": "Ignores lighting."
+          },
+          {
+            "Label": "Glow in darkness",
+            "Value": 1,
+            "Description": "Fades in as light drops."
+          },
+          {
+            "Label": "Glow in light",
+            "Value": 2,
+            "Description": "Fades in as light rises."
+          }
+        ]
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Glow",
+        "Label": "Light sensitivity",
+        "Description": "How strongly the mode applies. 0 = always on regardless of mode, 1 = full effect.",
+        "Minimum": 0,
+        "Maximum": 1,
+        "Speed": 0.01,
+        "Precision": 3
+      }
+    ],
+    "654612545": [
+      {
+        "Offset": 0,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Glow",
+        "Label": "Color source",
+        "Description": "0 = tint only, 1 = the hair's own color (main and highlight colors), 2 = the Luminis texture's RGB colors, 3 = rainbow along the strands. In-between values blend.",
+        "Minimum": 0,
+        "Maximum": 3,
+        "Speed": 0.01,
+        "Precision": 2
+      },
+      {
+        "Offset": 1,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Glow",
+        "Label": "Area mix",
+        "Description": "0 = react to light hitting the hair (shadows, facing a lamp), 1 = react to the area's overall brightness only (steady while turning). 0.5 is a good balance.",
+        "Minimum": 0,
+        "Maximum": 1,
+        "Speed": 0.01,
+        "Precision": 3
+      },
+      {
+        "Offset": 2,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Glow",
+        "Label": "Glow area",
+        "Description": "Which parts of the hair glow.",
+        "Values": [
+          {
+            "Label": "Whole hair",
+            "Value": 0
+          },
+          {
+            "Label": "Highlights only",
+            "Value": 1,
+            "Description": "Only the highlight streaks (where the highlight color shows)."
+          },
+          {
+            "Label": "Main color only",
+            "Value": 2,
+            "Description": "Everything except the highlight streaks."
+          },
+          {
+            "Label": "Luminis texture",
+            "Value": 3,
+            "Description": "Painted glow mask: the alpha of the material's Luminis texture."
+          }
+        ]
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Glow",
+        "Label": "Debug view",
+        "Description": "Replaces the eye with diagnostic information. Set back to Off when done.",
+        "Values": [
+          {
+            "Label": "Off",
+            "Value": 0
+          },
+          {
+            "Label": "Glow mask",
+            "Value": 1,
+            "Description": "White where the mask allows glow."
+          },
+          {
+            "Label": "Light level",
+            "Value": 2,
+            "Description": "Gray value of the light the shader measures."
+          },
+          {
+            "Label": "Light gate",
+            "Value": 3,
+            "Description": "White = glow fully on, black = off."
+          },
+          {
+            "Label": "Glow only",
+            "Value": 4,
+            "Description": "Shows only the glow, without the lit eye."
+          }
+        ]
+      }
+    ],
+    "2602692533": [
+      {
+        "Offset": 0,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Glow",
+        "Label": "Detail",
+        "Description": "0 = flat glow, 1 = the hair's own shading shows through the glow (strand shadows, darker roots).",
+        "Minimum": 0,
+        "Maximum": 1,
+        "Speed": 0.01,
+        "Precision": 3
+      },
+      {
+        "Offset": 1,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Glow",
+        "Label": "Detail gain",
+        "Description": "Brightens the detail pattern. Raise it if detail makes the glow too dim.",
+        "Minimum": 0,
+        "Maximum": 8,
+        "Speed": 0.02,
+        "Precision": 2
+      },
+      {
+        "Offset": 2,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Glow",
+        "Label": "Rainbow length",
+        "Description": "How many times the rainbow repeats along the hair (color source 3). Negative values reverse the direction.",
+        "Minimum": -8,
+        "Maximum": 8,
+        "Speed": 0.01,
+        "Precision": 2
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Glow",
+        "Label": "Rainbow shift",
+        "Description": "Moves the rainbow colors along the hair (color source 3).",
+        "Minimum": 0,
+        "Maximum": 1,
+        "Speed": 0.005,
+        "Precision": 3
+      }
+    ],
+    "3729917104": [
+      {
+        "Offset": 0,
+        "Length": 3,
+        "Type": "Color",
+        "Group": "Luminis Glow",
+        "Label": "Highlight glow color",
+        "Description": "Glow tint for the highlight streaks when 'Separate highlight color' is on. The main hair keeps using Glow tint. For pure colors (e.g. red hair, blue highlights) set Color source to 0."
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Glow",
+        "Label": "Separate highlight color",
+        "Description": "Give the highlight streaks their own glow color.",
+        "Values": [
+          {
+            "Label": "Off",
+            "Value": 0,
+            "Description": "Highlights use Glow tint like the rest of the hair."
+          },
+          {
+            "Label": "On",
+            "Value": 1,
+            "Description": "Highlights use Highlight glow color."
+          }
+        ]
+      }
+    ]
+  }
+}
