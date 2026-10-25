@@ -22,6 +22,9 @@
 #   --area-mix N                0 = react to light on the skin, 1 = to the area's brightness (default 0.5)
 #   --mod-dir FOLDER            Penumbra mod folder (default D:\SquareEnix)
 #   --update                    allow updating an existing glow mod with the same name
+#   --layer2 IMAGE              a second glow layer with its own settings:
+#     --layer2-intensity N  --layer2-mode dark|always|light (default always)
+#     --layer2-tint R,G,B   --layer2-anim MODE,SPEED,STEPS,SOFTNESS (e.g. 4,0.2,4,1 = slow chroma)
 import argparse, json, pathlib, shutil, struct, sys, uuid
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
@@ -79,6 +82,11 @@ def main():
     ap.add_argument("--area-mix", type=float, default=0.5)
     ap.add_argument("--mod-dir", default=MOD_DIR)
     ap.add_argument("--update", action="store_true")
+    ap.add_argument("--layer2", help="a second glow layer image with its own settings")
+    ap.add_argument("--layer2-intensity", type=float, default=1.5)
+    ap.add_argument("--layer2-mode", choices=MODES, default="always")
+    ap.add_argument("--layer2-tint", default="1,1,1")
+    ap.add_argument("--layer2-anim", default="0,1,4,1", help="MODE,SPEED,STEPS,SOFTNESS (mode 4 = chroma)")
     a = ap.parse_args()
     tint = tuple(float(x) for x in a.tint.split(","))
     if len(tint) != 3:
@@ -89,6 +97,12 @@ def main():
     if not layer.is_file():
         fail(f"{layer} not found")
     tex = layer.read_bytes() if layer.suffix.lower() == ".tex" else image_to_tex(layer)
+    tex2 = None
+    if a.layer2:
+        layer2 = pathlib.Path(a.layer2)
+        if not layer2.is_file():
+            fail(f"{layer2} not found")
+        tex2 = layer2.read_bytes() if layer2.suffix.lower() == ".tex" else image_to_tex(layer2)
 
     # Materials
     mats = []
@@ -96,7 +110,7 @@ def main():
         data = pathlib.Path(file).read_bytes() if pathlib.Path(file).is_file() else fail(f"{file} not found")
         shader = (ml.shader_package_name(data) or "").lower()
         if shader not in ml.GLOW_TEXTURE_SLOT:
-            fail(f"{file} uses {shader or 'an unknown shader'}; glow layers work on skin and hair materials")
+            fail(f"{file} uses {shader or 'an unknown shader'}; glow layers work on eye, skin and hair materials")
         mats.append((data, norm(gp), shader))
     first_gp = mats[0][1]
     stem = first_gp.rsplit("/", 1)[-1].rsplit(".", 1)[0]
@@ -118,15 +132,25 @@ def main():
         files[gp] = str(rel)
 
     put(layer_gp, tex)
+    layer2_gp = layer_gp[:-len(".tex")] + "2.tex" if tex2 is not None else None
+    if tex2 is not None:
+        put(layer2_gp, tex2)
     for data, gp, shader in mats:
-        area = 3.0 if shader == "hair.shpk" else 0.0      # hair: "Luminis texture"; skin: "Glow layer"
+        area = {"hair.shpk": 3.0, "iris.shpk": 1.0}.get(shader, 0.0)   # each shader's "glow layer" area
         values = {"color": (*tint, a.intensity),
                   "light": (0.02, 0.15, MODES[a.mode], 1.0),
                   "misc": (2.0, a.area_mix, area, 0.0)}    # color source 2 = the glow layer's colors
-        new, _, result = ml.apply_luminis(data, values, layer_gp)
+        if tex2 is not None:
+            t2 = tuple(float(x) for x in a.layer2_tint.split(","))
+            values["l2color"] = (*t2, a.layer2_intensity)
+            values["l2light"] = (0.02, 0.15, MODES[a.layer2_mode], 1.0)
+            values["l2anim"] = tuple(float(x) for x in a.layer2_anim.split(","))
+        new, _, result = ml.apply_luminis(data, values, layer_gp, layer2_gp)
         put(gp, new)
         print(f"material  {gp}  ({shader}, intensity {a.intensity:g}, glows {a.mode})")
     print(f"layer     {layer_gp}  ({len(tex) / 1e6:.1f} MB)")
+    if tex2 is not None:
+        print(f"layer 2   {layer2_gp}  ({len(tex2) / 1e6:.1f} MB, glows {a.layer2_mode}, animation {a.layer2_anim})")
 
     meta_path = mod / "meta.json"
     meta = json.loads(meta_path.read_text(encoding="utf-8-sig")) if meta_path.exists() else {

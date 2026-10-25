@@ -25,10 +25,16 @@ PROFILE_RULES = {
                        "g_SamplerNormal.T", "g_SamplerMask.T", "g_PbrParameterCommon"} <= r,
     # skin: composite shaders read G-buffer 2 (bodies, faces and other skin types)
     "skin": lambda r: "g_SamplerGBuffer2" in r,
+    # gear, minions, mounts, weapons: composite shaders compute the item's color themselves and read
+    # ambient and instance data (G-buffer shaders don't)
+    "characterlegacy": lambda r: {"g_AmbientParam", "g_InstanceParameter", "g_SamplerNormal.T",
+                                  "g_PbrParameterCommon", "g_CommonParameter"} <= r,
+    "character": lambda r: {"g_AmbientParam", "g_InstanceParameter", "g_SamplerNormal.T",
+                            "g_PbrParameterCommon", "g_CommonParameter"} <= r,
 }
 PROFILES = PROFILE_RULES
 # New material texture slots a profile needs declared in its shader package first.
-PROFILE_DECLARE = {"skin": "g_SamplerLuminis"}
+PROFILE_DECLARE = {k: "g_SamplerLuminis,g_SamplerLuminis2" for k in ("skin", "iris", "hair", "characterlegacy", "character")}
 
 def resource_names(blob):
     """Names of the resources a DXBC shader binds (from its reflection data)."""
@@ -65,7 +71,10 @@ def main():
         sys.exit("usage: python tools\\build_luminis.py iris|hair|skin [INDEX ...]")
     profile = sys.argv[1]
     explicit = [int(x) for x in sys.argv[2:]]
-    vanilla = ROOT / "vanilla" / "2026.09.15" / f"{profile}.shpk"
+    # The newest vanilla\<game version>\ folder that has this shader package (see luminis_game_extract.py).
+    candidates = sorted((p for p in (ROOT / "vanilla").glob(f"*/{profile}.shpk")), key=lambda p: p.parent.name)
+    vanilla = candidates[-1] if candidates else ROOT / "vanilla" / "missing" / f"{profile}.shpk"
+    print(f"Vanilla {profile}.shpk: {vanilla.parent.name}")
     blobs = ROOT / "blobs" / profile / "all"
     stage = ROOT / "compiled" / profile / "stage"
     out_dir = ROOT / "compiled" / profile / "luminis"
@@ -90,9 +99,10 @@ def main():
         current = stage / "step1.shpk"
     target = MOD / "shader" / "sm5" / "shpk" / f"{profile}.shpk"
     step("Patch into mod", [sys.executable, TOOLS / "shpk_patch.py", current, target, blobs, out_dir]
-         + [str(b["ps"]) for b in built])
-    missing = sorted(set(indices) - {b["ps"] for b in built})
-    print(f"\nDone: {len(built)} of {len(indices)} {profile} shaders carry Luminis."
+         + [str(p) for p in sorted({b["ps"] for b in built})])
+    built_ps = sorted({b["ps"] for b in built})
+    missing = sorted(set(indices) - set(built_ps))
+    print(f"\nDone: {len(built_ps)} of {len(indices)} {profile} shaders carry Luminis."
           + (f" Still vanilla: {missing}" if missing else ""))
     if not (MOD / "meta.json").exists() or f"shader/sm5/shpk/{profile}.shpk" not in (MOD / "meta.json").read_text():
         print(f"Note: register the shader in the mod once with:\n"

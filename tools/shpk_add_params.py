@@ -3,12 +3,21 @@
 # Usage (from D:\luminis):
 #   python tools\shpk_add_params.py IN.shpk OUT.shpk
 #
-# Adds five float4 material parameters at the end of the material buffer:
+# Adds nineteen float4 material parameters at the end of the material buffer:
 #   g_LuminisColor  (tint RGB, intensity)            default 1, 1, 1, 0   <- intensity 0: no glow
 #   g_LuminisLight  (dark start, dark end, mode, sensitivity)  default 0.02, 0.15, 1, 1
-#   g_LuminisMisc   (color source, area mix, per-pixel sens, debug view) default 1, 0.5, 0, 0
+#   g_LuminisMisc   (color source, area mix, glow area, debug view)     default 1, 0.5, 0, 0
 #   g_LuminisDetail (detail, detail gain, rainbow length, rainbow shift) default 0, 2, 0, 0
 #   g_LuminisHighlight (highlight tint RGB, use highlight tint 0/1)      default 1, 1, 1, 0
+#   g_LuminisAnim   (animation mode, speed, steps, softness)            default 0, 1, 4, 1
+#   g_LuminisAnimColor (color 2 / strobe color RGB, unused)             default 0, 0, 1, 0
+#   g_LuminisAnimColor3, g_LuminisAnimColor4 (colors 3 and 4 RGB, pulse min / max) default green 0.15, yellow 1
+#   g_LuminisL2Color (layer 2 tint RGB, intensity)                       default 1, 1, 1, 0
+#   g_LuminisL2Light (layer 2 dark start, dark end, mode, sensitivity)   default 0.02, 0.15, 0 (always), 1
+#   g_LuminisL2Anim  (layer 2 animation mode, speed, steps, softness)    default 0, 1, 4, 1
+#   g_LuminisL2AnimColor (layer 2 color 2 RGB, layer 2 color source)     default blue, source 2
+#   g_LuminisL2AnimColor3, ...4 (layer 2's own colors 3, 4 RGB)          default green, yellow
+#   g_LuminisRows1..4 (gear: per color table row 0 animated, 1 static, 2 off; rows 1-4 .. 13-16) default 0
 # and grows every g_MaterialParameter buffer declaration to match. Shader blobs are untouched;
 # run shpk_patch.py on the result to swap in the Luminis shaders.
 #
@@ -24,6 +33,20 @@ PARAMS = [
     ("g_LuminisMisc",  (1.0, 0.5, 0.0, 0.0)),
     ("g_LuminisDetail", (0.0, 2.0, 0.0, 0.0)),
     ("g_LuminisHighlight", (1.0, 1.0, 1.0, 0.0)),
+    ("g_LuminisAnim", (0.0, 1.0, 4.0, 1.0)),
+    ("g_LuminisAnimColor", (0.0, 0.0, 1.0, 0.0)),
+    ("g_LuminisAnimColor3", (0.0, 1.0, 0.0, 0.15)),
+    ("g_LuminisAnimColor4", (1.0, 1.0, 0.0, 1.0)),
+    ("g_LuminisL2Color", (1.0, 1.0, 1.0, 0.0)),
+    ("g_LuminisL2Light", (0.02, 0.15, 0.0, 1.0)),
+    ("g_LuminisL2Anim", (0.0, 1.0, 4.0, 1.0)),
+    ("g_LuminisL2AnimColor", (0.0, 0.0, 1.0, 2.0)),
+    ("g_LuminisL2AnimColor3", (0.0, 1.0, 0.0, 0.15)),
+    ("g_LuminisL2AnimColor4", (1.0, 1.0, 0.0, 1.0)),
+    ("g_LuminisRows1", (0.0, 0.0, 0.0, 0.0)),
+    ("g_LuminisRows2", (0.0, 0.0, 0.0, 0.0)),
+    ("g_LuminisRows3", (0.0, 0.0, 0.0, 0.0)),
+    ("g_LuminisRows4", (0.0, 0.0, 0.0, 0.0)),
 ]
 MATERIAL_BUFFER_ID = 0x64D12851  # g_MaterialParameter
 

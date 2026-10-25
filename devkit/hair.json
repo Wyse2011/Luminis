@@ -1,5 +1,5 @@
 {
-  "Comment": "Luminis glow framework for hair. Glow area picks where the hair glows: the whole hair, only the highlight streaks, only the main color, or a painted Luminis texture (alpha = glow mask, RGB = glow colors) added to the material with mtrl_luminis.py --glow-texture. Settings with intensity 0 never glow.",
+  "Comment": "Luminis glow framework for hair. Glow area picks where the hair glows: the whole hair, only the highlight streaks, only the main color, or a painted Luminis texture (alpha = glow mask, RGB = glow colors) set in the material's Luminis glow layer texture. Settings with intensity 0 never glow.",
   "Constants": {
     "2657300338": [
       {
@@ -93,7 +93,7 @@
         "Type": "Float",
         "Group": "Luminis Glow",
         "Label": "Color source",
-        "Description": "0 = tint only, 1 = the hair's own color (main and highlight colors), 2 = the Luminis texture's RGB colors, 3 = rainbow along the strands. In-between values blend.",
+        "Description": "0 = tint only, 1 = the hair's own color (main and highlight colors), 2 = the glow layer's colors, 3 = rainbow along the strands. In-between values blend.",
         "Minimum": 0,
         "Maximum": 3,
         "Speed": 0.01,
@@ -136,7 +136,7 @@
           {
             "Label": "Luminis texture",
             "Value": 3,
-            "Description": "Painted glow mask: the alpha of the material's Luminis texture."
+            "Description": "Painted glow layer: the material's Luminis glow layer texture (its alpha is where it glows)."
           }
         ]
       },
@@ -171,6 +171,21 @@
             "Label": "Glow only",
             "Value": 4,
             "Description": "Shows only the glow, without the lit eye."
+          },
+          {
+            "Label": "Clock",
+            "Value": 5,
+            "Description": "Shows the game clock as a black-to-white sweep, one sweep per clock unit, to calibrate Speed."
+          },
+          {
+            "Label": "Layer 2 mask",
+            "Value": 6,
+            "Description": "White where glow layer 2 would glow."
+          },
+          {
+            "Label": "Layer 2 light gate",
+            "Value": 7,
+            "Description": "White where glow layer 2 is currently switched on by its glow mode."
           }
         ]
       }
@@ -254,6 +269,430 @@
           }
         ]
       }
+    ],
+    "1057547936": [
+      {
+        "Offset": 0,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Animation",
+        "Label": "Animation",
+        "Description": "Makes the glow change over time.",
+        "Values": [
+          {
+            "Label": "Off",
+            "Value": 0,
+            "Description": "Steady glow."
+          },
+          {
+            "Label": "Blink",
+            "Value": 1,
+            "Description": "Switches between the glow and nothing. Softness 0 = hard flash, 1 = smooth pulse."
+          },
+          {
+            "Label": "Two-color",
+            "Value": 2,
+            "Description": "Alternates between Glow tint and Strobe color."
+          },
+          {
+            "Label": "Color steps",
+            "Value": 3,
+            "Description": "Steps through evenly spaced rainbow colors (see Steps). Rainbow shift picks the starting color. Like Two-color, it keeps the surface's dark parts (such as the pupil) dark."
+          },
+          {
+            "Label": "Chroma",
+            "Value": 4,
+            "Description": "Spins smoothly through the whole rainbow. On hair and skin, Rainbow length above 0 adds moving color bands. Like Two-color, it keeps the surface's dark parts (such as the pupil) dark."
+          },
+          {
+            "Label": "Custom colors",
+            "Value": 5,
+            "Description": "Cycles through your own colors: Glow tint, Color 2, Color 3 and Color 4. Steps sets how many (2 to 4)."
+          },
+          {
+            "Label": "Pulse",
+            "Value": 6,
+            "Description": "Like Blink, but swings between Pulse minimum and Pulse maximum instead of switching off. Softness 1 = smooth breathing pulse."
+          },
+          {
+            "Label": "Hue cycle",
+            "Value": 7,
+            "Description": "Every glow color rotates around the color wheel at once, keeping its place, so a painted rainbow gradient flows through the design. Uses the color source's own colors (Color source 2 for a glow layer)."
+          }
+        ]
+      },
+      {
+        "Offset": 1,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Animation",
+        "Label": "Speed",
+        "Description": "Cycles per clock unit (see Debug view: Clock). Small values are slow; negative values run backwards.",
+        "Minimum": -10,
+        "Maximum": 10,
+        "Speed": 0.002,
+        "Precision": 3
+      },
+      {
+        "Offset": 2,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Animation",
+        "Label": "Steps",
+        "Description": "Color steps: how many rainbow colors (2 to 12; 3 gives red, green, blue). Custom colors: how many of your colors to use (2 to 4).",
+        "Minimum": 2,
+        "Maximum": 12,
+        "Speed": 0.05,
+        "Precision": 0
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Animation",
+        "Label": "Softness",
+        "Description": "0 = hard switch between states, 1 = smooth fade.",
+        "Minimum": 0,
+        "Maximum": 1,
+        "Speed": 0.01,
+        "Precision": 2
+      }
+    ],
+    "3024841222": [
+      {
+        "Offset": 0,
+        "Length": 3,
+        "Type": "Color",
+        "Group": "Luminis Animation",
+        "Label": "Color 2 (strobe color)",
+        "Description": "The second color for Two-color and Custom colors. Glow tint is the first."
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Hidden"
+      }
+    ],
+    "1443336009": [
+      {
+        "Offset": 0,
+        "Length": 3,
+        "Type": "Color",
+        "Group": "Luminis Animation",
+        "Label": "Color 3",
+        "Description": "The third color for Custom colors (used when Steps is 3 or 4)."
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Animation",
+        "Label": "pulse minimum",
+        "Description": "Pulse: the lowest brightness, as a fraction of the intensity. 0.15 = 15%; 0 = fades out completely like Blink.",
+        "Minimum": 0,
+        "Maximum": 1,
+        "Speed": 0.005,
+        "Precision": 2
+      }
+    ],
+    "3361938154": [
+      {
+        "Offset": 0,
+        "Length": 3,
+        "Type": "Color",
+        "Group": "Luminis Animation",
+        "Label": "Color 4",
+        "Description": "The fourth color for Custom colors (used when Steps is 4)."
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Animation",
+        "Label": "pulse maximum",
+        "Description": "Pulse: the highest brightness, as a fraction of the intensity. 1 = full intensity.",
+        "Minimum": 0,
+        "Maximum": 1,
+        "Speed": 0.005,
+        "Precision": 2
+      }
+    ],
+    "4190601817": [
+      {
+        "Offset": 0,
+        "Length": 3,
+        "Type": "Color",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 tint",
+        "Description": "Multiplies glow layer 2's painted colors. White keeps them as painted."
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 intensity",
+        "Description": "Brightness of glow layer 2. 0 turns layer 2 off.",
+        "Minimum": 0,
+        "Maximum": 20,
+        "Speed": 0.01,
+        "Precision": 2
+      }
+    ],
+    "4102788679": [
+      {
+        "Offset": 0,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 dark start",
+        "Description": "Light level below which layer 2 glows fully (Glow in darkness).",
+        "Minimum": 0,
+        "Maximum": 2,
+        "Speed": 0.001,
+        "Precision": 3
+      },
+      {
+        "Offset": 1,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 dark end",
+        "Description": "Light level above which layer 2 stops glowing (Glow in darkness).",
+        "Minimum": 0,
+        "Maximum": 2,
+        "Speed": 0.001,
+        "Precision": 3
+      },
+      {
+        "Offset": 2,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 glow mode",
+        "Description": "When glow layer 2 glows, independently of layer 1.",
+        "Values": [
+          {
+            "Label": "Always on",
+            "Value": 0,
+            "Description": "Ignores lighting."
+          },
+          {
+            "Label": "Glow in darkness",
+            "Value": 1,
+            "Description": "Fades in as light drops."
+          },
+          {
+            "Label": "Glow in light",
+            "Value": 2,
+            "Description": "Fades in as light rises."
+          }
+        ]
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 light sensitivity",
+        "Description": "How strongly layer 2's glow mode applies. 0 ignores lighting.",
+        "Minimum": 0,
+        "Maximum": 1,
+        "Speed": 0.01,
+        "Precision": 2
+      }
+    ],
+    "1190068539": [
+      {
+        "Offset": 0,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 animation",
+        "Description": "Makes glow layer 2 change over time, independently of layer 1.",
+        "Values": [
+          {
+            "Label": "Off",
+            "Value": 0,
+            "Description": "Steady glow."
+          },
+          {
+            "Label": "Blink",
+            "Value": 1,
+            "Description": "Switches between the glow and nothing. Softness 0 = hard flash, 1 = smooth pulse."
+          },
+          {
+            "Label": "Two-color",
+            "Value": 2,
+            "Description": "Alternates between Glow tint and Strobe color."
+          },
+          {
+            "Label": "Color steps",
+            "Value": 3,
+            "Description": "Steps through evenly spaced rainbow colors (see Steps). Rainbow shift picks the starting color. Like Two-color, it keeps the surface's dark parts (such as the pupil) dark."
+          },
+          {
+            "Label": "Chroma",
+            "Value": 4,
+            "Description": "Spins smoothly through the whole rainbow. On hair and skin, Rainbow length above 0 adds moving color bands. Like Two-color, it keeps the surface's dark parts (such as the pupil) dark."
+          },
+          {
+            "Label": "Custom colors",
+            "Value": 5,
+            "Description": "Cycles through your own colors: Layer 2 tint and Layer 2 colors 2 to 4. Steps sets how many (2 to 4)."
+          },
+          {
+            "Label": "Pulse",
+            "Value": 6,
+            "Description": "Like Blink, but swings between Pulse minimum and Pulse maximum instead of switching off. Softness 1 = smooth breathing pulse."
+          },
+          {
+            "Label": "Hue cycle",
+            "Value": 7,
+            "Description": "Every glow color rotates around the color wheel at once, keeping its place, so a painted rainbow gradient flows through the design. Uses the color source's own colors (Color source 2 for a glow layer)."
+          }
+        ]
+      },
+      {
+        "Offset": 1,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 speed",
+        "Description": "Cycles per clock unit (see Debug view: Clock). Small values are slow; negative values run backwards.",
+        "Minimum": -10,
+        "Maximum": 10,
+        "Speed": 0.002,
+        "Precision": 3
+      },
+      {
+        "Offset": 2,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 steps",
+        "Description": "Color steps: how many rainbow colors (2 to 12; 3 gives red, green, blue). Custom colors: how many of your colors to use (2 to 4).",
+        "Minimum": 2,
+        "Maximum": 12,
+        "Speed": 0.05,
+        "Precision": 0
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 softness",
+        "Description": "0 = hard switch between states, 1 = smooth fade.",
+        "Minimum": 0,
+        "Maximum": 1,
+        "Speed": 0.01,
+        "Precision": 2
+      }
+    ],
+    "191168796": [
+      {
+        "Offset": 0,
+        "Length": 3,
+        "Type": "Color",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 color 2",
+        "Description": "Layer 2's second color for Two-color and Custom colors. Layer 2 tint is its first."
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 color source",
+        "Description": "Where layer 2's colors come from: 0 = Layer 2 tint only (pure animation colors, the painting only decides where it glows), 1 = the surface's own color, 2 = layer 2's painted colors (default), 3 = rainbow. In-between values blend.",
+        "Minimum": 0,
+        "Maximum": 3,
+        "Speed": 0.01,
+        "Precision": 2
+      }
+    ],
+    "2883213400": [
+      {
+        "Offset": 0,
+        "Length": 3,
+        "Type": "Color",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 color 3",
+        "Description": "Layer 2's third color for Custom colors (Layer 2 steps 3 or 4)."
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 pulse minimum",
+        "Description": "Pulse: the lowest brightness, as a fraction of the intensity. 0.15 = 15%; 0 = fades out completely like Blink.",
+        "Minimum": 0,
+        "Maximum": 1,
+        "Speed": 0.005,
+        "Precision": 2
+      }
+    ],
+    "901697019": [
+      {
+        "Offset": 0,
+        "Length": 3,
+        "Type": "Color",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 color 4",
+        "Description": "Layer 2's fourth color for Custom colors (Layer 2 steps 4)."
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 pulse maximum",
+        "Description": "Pulse: the highest brightness, as a fraction of the intensity. 1 = full intensity.",
+        "Minimum": 0,
+        "Maximum": 1,
+        "Speed": 0.005,
+        "Precision": 2
+      }
+    ],
+    "3660746918": [
+      {
+        "Offset": 0,
+        "Length": 16,
+        "Type": "Hidden"
+      }
+    ],
+    "1127989532": [
+      {
+        "Offset": 0,
+        "Length": 16,
+        "Type": "Hidden"
+      }
+    ],
+    "876409226": [
+      {
+        "Offset": 0,
+        "Length": 16,
+        "Type": "Hidden"
+      }
+    ],
+    "2857919529": [
+      {
+        "Offset": 0,
+        "Length": 16,
+        "Type": "Hidden"
+      }
     ]
+  },
+  "Samplers": {
+    "764520549": {
+      "Label": "Luminis glow layer",
+      "Description": "Glow layer for the hair: a texture painted over the hair's texture layout. Its colors are the glow colors; transparent parts don't glow. Used when Glow area is Luminis texture."
+    },
+    "4112668159": {
+      "Label": "Luminis glow layer 2",
+      "Description": "A second glow layer with its own intensity, tint, light behavior and animation (Luminis Layer 2 settings)."
+    }
   }
 }

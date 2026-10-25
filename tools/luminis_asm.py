@@ -15,7 +15,7 @@ import json, pathlib, re, shutil, subprocess, sys, time
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DECOMPILER = ROOT / "tools" / "3dmigoto" / "cmd_Decompiler.exe"
 INCLUDE = ROOT / "include"
-MATERIAL_REGS = 31  # g_MaterialParameter size including the Luminis slots 26..30
+MATERIAL_REGS = 45  # g_MaterialParameter size including the Luminis slots 26..44
 
 COMMON_HEADER = r"""
 cbuffer cbMat     : register(b0)     {{ float4 g_MaterialParameter[{regs}]; }}
@@ -25,6 +25,17 @@ cbuffer cbAmbient : register(b{amb}) {{ float4 g_AmbientParam[10]; }}
 #define LUMINIS_P2 g_MaterialParameter[28]
 #define LUMINIS_P3 g_MaterialParameter[29]
 #define LUMINIS_P4 g_MaterialParameter[30]
+#define LUMINIS_P5 g_MaterialParameter[31]
+#define LUMINIS_P6 g_MaterialParameter[32]
+#define LUMINIS_P7 g_MaterialParameter[33]
+#define LUMINIS_P8 g_MaterialParameter[34]
+#define LUMINIS_P9 g_MaterialParameter[35]
+#define LUMINIS_P10 g_MaterialParameter[36]
+#define LUMINIS_P11 g_MaterialParameter[37]
+#define LUMINIS_ROWS_BASE 41
+#define LUMINIS_P12 g_MaterialParameter[38]
+#define LUMINIS_P13 g_MaterialParameter[39]
+#define LUMINIS_P14 g_MaterialParameter[40]
 #include "luminis_glow.hlsli"
 
 float3 Luminis_Area() {{
@@ -46,7 +57,11 @@ cbuffer cbCommon  : register(b{com}) {{ float4 g_CommonParameter[4]; }}
 Texture2D<float4> g_GBuffer2       : register(t{gb2});
 SamplerState      g_SamplerGBuffer : register(s{sgb});
 
-float4 main(float4 pos : SV_Position, float4 litColor : LUMINIS0, float4 cap : LUMINIS1) : SV_Target0
+cbuffer cbPbrClock : register(b{pbr}) {{ float4 g_PbrParameterCommon[1]; }}
+#define LUMINIS_LAYER2 layer2
+#define LUMINIS_ANIMATE 1.0
+
+float4 main(float4 pos : SV_Position, float4 litColor : LUMINIS0, float4 cap : LUMINIS1, float4 layer : LUMINIS2, float4 layer2 : LUMINIS3) : SV_Target0
 {{
     float2 uv = pos.xy * g_CommonParameter[0].xy + g_CommonParameter[0].zw;
     float3 gb = g_GBuffer2.Sample(g_SamplerGBuffer, uv).xyz;
@@ -56,12 +71,27 @@ float4 main(float4 pos : SV_Position, float4 litColor : LUMINIS0, float4 cap : L
     LuminisInput li;
     li.tint             = LUMINIS_P0.rgb;
     li.albedo           = albedo;
-    li.glowMask         = cap.x;                     // eye mask alpha
-    li.glowColor        = Luminis_HueToRGB(cap.y);   // hue painted in the eye color texture alpha
+    // Glow area (g_LuminisMisc.z):
+    //   0 = natural iris: the eye mask's blue channel, the game's own iris marker (default)
+    //   1 = glow layer: PNG-style texture in g_SamplerLuminis (RGB = glow colors, alpha = where it glows)
+    //   2 = painted eye mask: the eye mask's alpha
+    //   3 = whole eye
+    //   4 = emissive mask: the eye mask's red channel, where the game's own eye glow (g_EmissiveColor)
+    //       shows; "glow editable" eye mods paint their glowing design there
+    float area = round(g_MaterialParameter[28].z);
+    bool useLayer = abs(area - 1.0) < 0.5;
+    // Emissive mask uses the game's own eye-glow brightness curve: the glow rises steeply with the
+    // brightness of the eye's color texture (x1 dark .. x10 bright in vanilla), so a mod's design pops.
+    float emissiveCurve = (saturate(3.5714286 * (Luminis_Luminance(albedo) - 0.02)) * 9.0 + 1.0) / 10.0;
+    li.glowMask         = area < 0.5 ? cap.z : (useLayer ? layer.w : (area < 2.5 ? cap.x : (area < 3.5 ? 1.0 : cap.w * emissiveCurve)));
+    li.glowColor        = useLayer ? layer.rgb * layer.rgb : Luminis_HueToRGB(cap.y);
     li.rainbowHue       = cap.y;
     li.pixelSensitivity = 1.0;
     li.lightDiffuse     = Luminis_LightFromLit(litColor.xyz, albedo).xxx;
     li.ambient          = Luminis_Area();
+    li.time             = g_PbrParameterCommon[0].x;
+    li.layer2           = LUMINIS_LAYER2;
+    li.animate          = LUMINIS_ANIMATE;
     return float4(Luminis_Finish(litColor.xyz, li), litColor.w);
 }}
 """
@@ -72,6 +102,9 @@ cbuffer cbCustom : register(b{cus}) {{ float4 g_CustomizeParameter[7]; }}
 Texture2D<float4> g_HairNormal    : register(t{nrm});
 Texture2D<float4> g_HairMask      : register(t{msk});
 Texture2D<float4> g_Luminis       : register(t{lum});
+Texture2D<float4> g_Luminis2      : register(t{lum2});
+#define LUMINIS_LAYER2 g_Luminis2.SampleBias(g_SamplerNormal, uv.xy, bias)
+#define LUMINIS_ANIMATE 1.0
 SamplerState      g_SamplerNormal : register(s{smp});
 
 float4 main(float4 pos : SV_Position, float4 col : COLOR0, float4 uv : TEXCOORD0, float4 litColor : LUMINIS0) : SV_Target0
@@ -85,7 +118,7 @@ float4 main(float4 pos : SV_Position, float4 col : COLOR0, float4 uv : TEXCOORD0
     float3 dc = g_MaterialParameter[0].xyz;
     float3 albedo = hair * (shade * shade) * col.xyz * dc * dc;
 
-    // Glow area (g_LuminisMisc.z): 0 whole hair, 1 highlights only, 2 main color only, 3 Luminis texture alpha.
+    // Glow area (g_LuminisMisc.z): 0 whole hair, 1 highlights only, 2 main color only, 3 glow layer (g_SamplerLuminis) alpha.
     float4 lum = g_Luminis.SampleBias(g_SamplerNormal, uv.xy, bias);
     float area = round(g_MaterialParameter[28].z);
     float mask = area < 0.5 ? 1.0 : (area < 1.5 ? highlight : (area < 2.5 ? 1.0 - highlight : lum.w));
@@ -100,6 +133,9 @@ float4 main(float4 pos : SV_Position, float4 col : COLOR0, float4 uv : TEXCOORD0
     li.pixelSensitivity = 1.0;
     li.lightDiffuse     = Luminis_LightFromLit(litColor.xyz, albedo).xxx;
     li.ambient          = Luminis_Area();
+    li.time             = g_PbrParameterCommon[0].x;
+    li.layer2           = LUMINIS_LAYER2;
+    li.animate          = LUMINIS_ANIMATE;
     return float4(Luminis_Finish(litColor.xyz, li), litColor.w);
 }}
 """
@@ -109,6 +145,9 @@ cbuffer cbCommon : register(b{com}) {{ float4 g_CommonParameter[4]; }}
 cbuffer cbPbr    : register(b{pbr}) {{ float4 g_PbrParameterCommon[5]; }}
 Texture2D<float4> g_GBuffer2       : register(t{gb2});
 Texture2D<float4> g_Luminis        : register(t{lum});
+Texture2D<float4> g_Luminis2       : register(t{lum2});
+#define LUMINIS_LAYER2 g_Luminis2.SampleBias(g_SamplerNormal, uv.xy, bias)
+#define LUMINIS_ANIMATE 1.0
 SamplerState      g_SamplerGBuffer : register(s{sgb});
 SamplerState      g_SamplerNormal  : register(s{smp});
 
@@ -137,6 +176,92 @@ float4 main(float4 pos : SV_Position, float4 uv : TEXCOORD0, float4 litColor : L
     li.pixelSensitivity = 1.0;
     li.lightDiffuse     = Luminis_LightFromLit(litColor.xyz, albedo).xxx;
     li.ambient          = Luminis_Area();
+    li.time             = g_PbrParameterCommon[0].x;
+    li.layer2           = LUMINIS_LAYER2;
+    li.animate          = LUMINIS_ANIMATE;
+    return float4(Luminis_Finish(litColor.xyz, li), litColor.w);
+}}
+"""
+
+GEAR_STUB = COMMON_HEADER + r"""
+cbuffer cbPbr    : register(b{pbr}) {{ float4 g_PbrParameterCommon[5]; }}
+cbuffer cbCommon : register(b{com}) {{ float4 g_CommonParameter[4]; }}
+Texture2D<float4> g_Luminis       : register(t{lum});
+Texture2D<float4> g_Luminis2      : register(t{lum2});
+SamplerState      g_SamplerNormal : register(s{smp});
+#define HAS_DIFFUSE {has_dif}
+#define HAS_LIGHT   {has_light}
+#if HAS_DIFFUSE
+Texture2D<float4> g_GearDiffuse   : register(t{dif});
+#endif
+#if HAS_LIGHT
+Texture2D<float4> g_LightDiffuse  : register(t{ldif});
+SamplerState      g_SamplerGBuffer : register(s{sgb});
+#endif
+#define HAS_INDEX   {has_idx}
+#if HAS_INDEX
+Texture2D<float4> g_GearIndex     : register(t{idx});
+SamplerState      g_SamplerIndex  : register(s{idxs});
+#endif
+#define LUMINIS_LAYER2 g_Luminis2.SampleBias(g_SamplerNormal, uv.xy, bias)
+#define LUMINIS_ANIMATE rowAnimate
+
+float4 main(float4 pos : SV_Position, float4 uv : TEXCOORD0, float4 litColor : LUMINIS0, float4 emis : LUMINIS1) : SV_Target0
+{{
+    float bias = g_PbrParameterCommon[0].w + g_MaterialParameter[16].x;
+    float3 dc = g_MaterialParameter[0].xyz;
+#if HAS_DIFFUSE
+    float3 tex = g_GearDiffuse.SampleBias(g_SamplerNormal, uv.xy, bias).xyz;
+    float3 albedo = tex * tex * dc * dc;            // the item's color texture (dye colors not included)
+#else
+    float3 albedo = float3(0.5, 0.5, 0.5) * dc * dc; // no color texture: colors come from the dye table
+#endif
+
+    // Glow area (g_LuminisMisc.z): 0 = glow layer (g_SamplerLuminis), 1 = whole item,
+    // 2 = color table emissive: each color table row's Emissive Color decides where it glows and in
+    // which color (the game's own row glow is switched off in this mode).
+    float4 lum = g_Luminis.SampleBias(g_SamplerNormal, uv.xy, bias);
+    float area = round(g_MaterialParameter[28].z);
+    float emisMax = max(max(emis.x, emis.y), emis.z);
+
+    // Per color table row (g_LuminisRows1..4, one value per row): 0 = animated, 1 = static, 2 = off.
+    // The row comes from the index texture exactly as the game computes it.
+#if HAS_INDEX
+    float rowIdx = g_GearIndex.SampleLevel(g_SamplerIndex, uv.xy, 0).x;
+    int row = clamp((int)((rowIdx * 255.0 + 8.0) * 0.0588235296), 0, 15);
+#else
+    int row = 0;
+#endif
+    // Select the row's setting with comparisons only (no runtime indexing, which would compile to an
+    // indexed array the splicer can't handle).
+    float rq = (float)(row >> 2);
+    float rc = (float)(row & 3);
+    float4 rowSet = rq < 0.5 ? g_MaterialParameter[LUMINIS_ROWS_BASE]
+                  : rq < 1.5 ? g_MaterialParameter[LUMINIS_ROWS_BASE + 1]
+                  : rq < 2.5 ? g_MaterialParameter[LUMINIS_ROWS_BASE + 2]
+                             : g_MaterialParameter[LUMINIS_ROWS_BASE + 3];
+    float rowSel = rc < 0.5 ? rowSet.x : rc < 1.5 ? rowSet.y : rc < 2.5 ? rowSet.z : rowSet.w;
+    float rowAnimate = rowSel < 0.5 ? 1.0 : 0.0;
+    float rowOn = rowSel < 1.5 ? 1.0 : 0.0;
+
+    LuminisInput li;
+    li.tint             = LUMINIS_P0.rgb;
+    li.albedo           = albedo;
+    li.glowMask         = (area < 0.5 ? lum.w : (area < 1.5 ? 1.0 : saturate(emisMax))) * rowOn;
+    li.glowColor        = area < 1.5 ? lum.rgb * lum.rgb : emis.xyz / max(emisMax, 0.0001);
+    li.rainbowHue       = uv.y * g_MaterialParameter[29].z + g_MaterialParameter[29].w;
+    li.pixelSensitivity = 1.0;
+#if HAS_LIGHT
+    // Deferred lighting: read the light hitting this pixel straight from the light buffer.
+    float2 suv = pos.xy * g_CommonParameter[0].xy + g_CommonParameter[0].zw;
+    li.lightDiffuse     = g_LightDiffuse.Sample(g_SamplerGBuffer, suv).xyz;
+#else
+    li.lightDiffuse     = Luminis_LightFromLit(litColor.xyz, albedo).xxx;
+#endif
+    li.ambient          = Luminis_Area();
+    li.time             = g_PbrParameterCommon[0].x;
+    li.layer2           = LUMINIS_LAYER2;
+    li.animate          = LUMINIS_ANIMATE;
     return float4(Luminis_Finish(litColor.xyz, li), litColor.w);
 }}
 """
@@ -175,7 +300,10 @@ def need(b, name, kind):
         raise Skip(f"doesn't bind {name} ({kind})")
     return b[name][1]
 
+DYNAMIC_CBS = set()   # constant buffers the current epilogue indexes at runtime
+
 def parse_stub(listing):
+    DYNAMIC_CBS.clear()
     body, temps, cbs, started = [], 0, {}, False
     for l in listing.splitlines():
         s = l.strip()
@@ -191,7 +319,10 @@ def parse_stub(listing):
             temps = int(s.split()[1]); continue
         m = re.match(r"dcl_constantbuffer [cC][bB](\d+)\[(\d+)\]", s)
         if m:
-            cbs[int(m.group(1))] = int(m.group(2)); continue
+            cbs[int(m.group(1))] = int(m.group(2))
+            if "dynamicIndexed" in s:
+                DYNAMIC_CBS.add(int(m.group(1)))
+            continue
         if s.startswith("dcl_"):
             continue
         body.append(s)
@@ -226,7 +357,8 @@ def patch_one(profile, n, out_dir, work_root):
     if len(temps_i) != 1:
         raise Skip("couldn't find dcl_temps")
     base = int(lines[temps_i[0]].split()[1])
-    lit_reg, cap_reg, first_stub_reg = f"r{base}", f"r{base + 1}", base + 2
+    lit_reg, cap_reg, layer_reg, layer2_reg = f"r{base}", f"r{base + 1}", f"r{base + 2}", f"r{base + 3}"
+    first_stub_reg = base + 4
 
     # Final color: the multiply by g_InstanceParameter.m_MulColor (cb[0]) right before output.
     mul_re = re.compile(rf"(\s*)mul (r\d+)\.xyz, (?:(r\d+\.\w+), cb{inst_b}\[0\]\.xyzx|cb{inst_b}\[0\]\.xyzx, (r\d+\.\w+))\s*$")
@@ -243,6 +375,7 @@ def patch_one(profile, n, out_dir, work_root):
         sgb_s = need(b, "g_SamplerGBuffer.S", "sampler")
         com_b = need(b, "g_CommonParameter", "cbuffer")
         tex_t = b["g_SamplerDiffuse.T"][1] if "g_SamplerDiffuse.T" in b else max(tex_slots) + 1
+        lum_t = max(max(tex_slots), tex_t) + 1
         mask_i = [i for i, l in enumerate(lines) if re.match(r"\s*sample", l) and re.search(rf",\s*t{mask_t}\.", l)]
         if len(mask_i) != 1:
             raise Skip(f"expected one sample of the mask texture, found {len(mask_i)}")
@@ -253,24 +386,31 @@ def patch_one(profile, n, out_dir, work_root):
         samp_slot = int(operands[3][1:])
         tail = (", " + operands[4]) if len(operands) == 5 else ""
         inserts_before_mask = [mask_i[0], [
-            "// ---- Luminis capture: glow mask (x) and glow hue (y) ----",
+            "// ---- Luminis capture: painted mask (x), glow hue (y), iris marker (z), emissive mask (w), glow layers 1 and 2 ----",
             f"{mind}{op} {cap_reg}.x, {operands[1]}, t{mask_t}.wwww, {operands[3]}{tail}",
-            f"{mind}{op} {cap_reg}.y, {operands[1]}, t{tex_t}.wwww, {operands[3]}{tail}"]]
-        extra_tex = ("g_SamplerDiffuse", tex_t, samp_slot, "g_SamplerDiffuse.T" not in b)
-        stub_src = IRIS_STUB.format(regs=MATERIAL_REGS, amb=amb_b, com=com_b, gb2=gb2_t, sgb=sgb_s)
+            f"{mind}{op} {cap_reg}.y, {operands[1]}, t{tex_t}.wwww, {operands[3]}{tail}",
+            f"{mind}{op} {cap_reg}.z, {operands[1]}, t{mask_t}.zzzz, {operands[3]}{tail}",
+            f"{mind}{op} {cap_reg}.w, {operands[1]}, t{mask_t}.xxxx, {operands[3]}{tail}",
+            f"{mind}{op} {layer_reg}.xyzw, {operands[1]}, t{lum_t}.xyzw, {operands[3]}{tail}",
+            f"{mind}{op} {layer2_reg}.xyzw, {operands[1]}, t{lum_t + 1}.xyzw, {operands[3]}{tail}"]]
+        extra_tex = [("g_SamplerDiffuse", tex_t, samp_slot, "g_SamplerDiffuse.T" not in b),
+                     ("g_SamplerLuminis", lum_t, samp_slot, True),
+                     ("g_SamplerLuminis2", lum_t + 1, samp_slot, True)]
+        pbr_b = need(b, "g_PbrParameterCommon", "cbuffer")
+        stub_src = IRIS_STUB.format(regs=MATERIAL_REGS, amb=amb_b, com=com_b, gb2=gb2_t, sgb=sgb_s, pbr=pbr_b)
     elif profile == "hair":
         nrm_t = need(b, "g_SamplerNormal.T", "texture")
         msk_t = need(b, "g_SamplerMask.T", "texture")
         smp_s = need(b, "g_SamplerNormal.S", "sampler")
         pbr_b = need(b, "g_PbrParameterCommon", "cbuffer")
         cus_b = need(b, "g_CustomizeParameter", "cbuffer")
-        lum_t = b["g_SamplerDecal.T"][1] if "g_SamplerDecal.T" in b else max(tex_slots) + 1
+        lum_t = max(tex_slots) + 1
         for key in [("COLOR", 0), ("TEXCOORD", 0)]:
             if key not in orig_sig:
                 raise Skip(f"input {key} not in the shader's signature")
-        extra_tex = ("g_SamplerDecal", lum_t, smp_s, "g_SamplerDecal.T" not in b)
+        extra_tex = [("g_SamplerLuminis", lum_t, smp_s, True), ("g_SamplerLuminis2", lum_t + 1, smp_s, True)]
         stub_src = HAIR_STUB.format(regs=MATERIAL_REGS, amb=amb_b, pbr=pbr_b, cus=cus_b,
-                                    nrm=nrm_t, msk=msk_t, lum=lum_t, smp=smp_s)
+                                    nrm=nrm_t, msk=msk_t, lum=lum_t, lum2=lum_t + 1, smp=smp_s)
     elif profile == "skin":
         gb2_t = need(b, "g_SamplerGBuffer2", "texture")
         sgb_s = need(b, "g_SamplerGBuffer.S", "sampler")
@@ -280,9 +420,44 @@ def patch_one(profile, n, out_dir, work_root):
         lum_t = max(tex_slots) + 1
         if ("TEXCOORD", 0) not in orig_sig:
             raise Skip("input TEXCOORD0 not in the shader's signature")
-        extra_tex = ("g_SamplerLuminis", lum_t, smp_s, True)
+        extra_tex = [("g_SamplerLuminis", lum_t, smp_s, True), ("g_SamplerLuminis2", lum_t + 1, smp_s, True)]
         stub_src = SKIN_STUB.format(regs=MATERIAL_REGS, amb=amb_b, com=com_b, pbr=pbr_b,
-                                    gb2=gb2_t, lum=lum_t, sgb=sgb_s, smp=smp_s)
+                                    gb2=gb2_t, lum=lum_t, lum2=lum_t + 1, sgb=sgb_s, smp=smp_s)
+    elif profile in ("characterlegacy", "character"):
+        smp_s = need(b, "g_SamplerNormal.S", "sampler")
+        pbr_b = need(b, "g_PbrParameterCommon", "cbuffer")
+        com_b = need(b, "g_CommonParameter", "cbuffer")
+        if ("TEXCOORD", 0) not in orig_sig:
+            raise Skip("input TEXCOORD0 not in the shader's signature")
+        has_dif = "g_SamplerDiffuse.T" in b
+        has_light = "g_SamplerLightDiffuse" in b and "g_SamplerGBuffer.S" in b
+        has_idx = "g_SamplerIndex.T" in b and "g_SamplerIndex.S" in b
+        # Color table emissive: the row emissive is multiplied by g_MaterialParameterDynamic.m_EmissiveColor
+        # exactly once. Copy it for Luminis first; afterwards, zero the game's own result when Glow area is
+        # 2 (color table emissive), so Luminis takes over the row glow.
+        emi_lines = None
+        if "g_MaterialParameterDynamic" in b and b["g_MaterialParameterDynamic"][0] == "cbuffer":
+            dyn = b["g_MaterialParameterDynamic"][1]
+            emi_re = re.compile(rf"(\s*)mul (r\d+)\.xyz, (?:(r\d+\.\w+), cb{dyn}\[0\]\.xyzx|cb{dyn}\[0\]\.xyzx, (r\d+\.\w+))\s*$")
+            emi_i = [i for i, l in enumerate(lines) if emi_re.match(l)]
+            if len(emi_i) == 1 and emi_i[0] < mul_i[0]:
+                em = emi_re.match(lines[emi_i[0]])
+                eind, edst, esrc = em.group(1), em.group(2), em.group(3) or em.group(4)
+                emi_lines = (emi_i[0], [
+                    "// ---- Luminis capture: color table emissive ----",
+                    f"{eind}mov {cap_reg}.xyz, {esrc}",
+                    lines[emi_i[0]],
+                    f"{eind}eq {cap_reg}.w, cb0[28].z, l(2.000000)",
+                    f"{eind}movc {edst}.xyz, {cap_reg}.wwww, l(0,0,0,0), {edst}.xyzx"])
+        lum_t = max(tex_slots) + 1
+        extra_tex = [("g_SamplerLuminis", lum_t, smp_s, True), ("g_SamplerLuminis2", lum_t + 1, smp_s, True)]
+        stub_src = GEAR_STUB.format(regs=MATERIAL_REGS, amb=amb_b, pbr=pbr_b, com=com_b, lum=lum_t, lum2=lum_t + 1,
+                                    smp=smp_s, has_dif=int(has_dif), has_light=int(has_light),
+                                    dif=b["g_SamplerDiffuse.T"][1] if has_dif else 0,
+                                    ldif=b["g_SamplerLightDiffuse"][1] if has_light else 0,
+                                    sgb=b["g_SamplerGBuffer.S"][1] if has_light else 0,
+                                    has_idx=int(has_idx), idx=b["g_SamplerIndex.T"][1] if has_idx else 0,
+                                    idxs=b["g_SamplerIndex.S"][1] if has_idx else 0)
     else:
         raise Skip(f"unknown profile {profile}")
 
@@ -298,6 +473,10 @@ def patch_one(profile, n, out_dir, work_root):
             vmap[reg] = lit_reg
         elif key == ("LUMINIS", 1):
             vmap[reg] = cap_reg
+        elif key == ("LUMINIS", 2):
+            vmap[reg] = layer_reg
+        elif key == ("LUMINIS", 3):
+            vmap[reg] = layer2_reg
         elif key in orig_sig:
             vmap[reg] = f"v{orig_sig[key]}"
         else:
@@ -326,6 +505,12 @@ def patch_one(profile, n, out_dir, work_root):
     if inserts_before_mask:
         idx, ins = inserts_before_mask
         out[idx:idx] = ins
+    if profile in ("characterlegacy", "character"):
+        if emi_lines:
+            idx, ins = emi_lines
+            out[idx:idx + 1] = ins
+        else:   # no row emissive in this variant: feed Luminis zeros
+            out[mul_i[0]:mul_i[0]] = [f"{ind}mov {cap_reg}.xyzw, l(0,0,0,0)"]
     out[temps_i[0]] = f"dcl_temps {first_stub_reg + stub_temps}"
     # Make sure every constant buffer is declared large enough for the epilogue.
     for cb, size in stub_cbs.items():
@@ -338,12 +523,14 @@ def patch_one(profile, n, out_dir, work_root):
                 found = True
                 if int(m.group(2)) < size:
                     out[i] = f"{m.group(1)}{size}{m.group(3)}"
+                if cb in DYNAMIC_CBS:   # the epilogue indexes this buffer at runtime
+                    out[i] = out[i].replace("immediateIndexed", "dynamicIndexed")
         if not found:
             raise Skip(f"epilogue uses cb{cb}, which the shader doesn't declare")
-    name, slot, samp, add = extra_tex
-    if add:
-        res = [i for i, l in enumerate(out) if l.startswith("dcl_resource")]
-        out.insert(res[-1] + 1, f"dcl_resource_texture2d (float,float,float,float) t{slot}")
+    for name, slot, samp, add in extra_tex:
+        if add:
+            res = [i for i, l in enumerate(out) if l.startswith("dcl_resource")]
+            out.insert(res[-1] + 1, f"dcl_resource_texture2d (float,float,float,float) t{slot}")
     asm_path.write_text("\n".join(out) + "\n")
 
     before = {p.name: p.stat().st_mtime for p in work.iterdir()}
@@ -353,15 +540,18 @@ def patch_one(profile, n, out_dir, work_root):
     if len(produced) != 1:
         raise Skip("couldn't find the assembled output")
     shutil.copy2(produced[0], out_dir / f"ps_{n}.dxbc")
-    samp_name = next((k[:-2] for k, v in b.items() if v == ("sampler", samp) and k.endswith(".S")), None)
-    if not samp_name:
-        raise Skip(f"couldn't name sampler s{samp}")
-    return {"ps": n, "texture": name, "slot": slot, "sampler": samp_name, "add_binding": add,
-            "epilogue_instructions": len(body)}
+    bindings_out = []
+    for name, slot, samp, add in extra_tex:
+        samp_name = next((k[:-2] for k, v in b.items() if v == ("sampler", samp) and k.endswith(".S")), None)
+        if not samp_name:
+            raise Skip(f"couldn't name sampler s{samp}")
+        bindings_out.append({"ps": n, "texture": name, "slot": slot, "sampler": samp_name, "add_binding": add,
+                             "epilogue_instructions": len(body)})
+    return bindings_out
 
 def main():
     if len(sys.argv) < 4:
-        sys.exit("usage: python tools\\luminis_asm.py iris|hair|skin OUT_DIR INDEX [INDEX ...]")
+        sys.exit("usage: python tools\\luminis_asm.py iris|hair|skin|characterlegacy|character OUT_DIR INDEX [INDEX ...]")
     profile = sys.argv[1]
     out_dir = pathlib.Path(sys.argv[2]).resolve()
     indices = [int(x) for x in sys.argv[3:]]
@@ -369,16 +559,16 @@ def main():
     results, skipped = [], []
     for n in indices:
         try:
-            r = patch_one(profile, n, out_dir, out_dir / "_work")
-            results.append(r)
-            print(f"ok    ps_{n}  (epilogue {r['epilogue_instructions']} instructions, extra texture t{r['slot']})"
-                  f"   [{indices.index(n) + 1}/{len(indices)}]", flush=True)
+            rs = patch_one(profile, n, out_dir, out_dir / "_work")
+            results.extend(rs)
+            print(f"ok    ps_{n}  (epilogue {rs[0]['epilogue_instructions']} instructions, extra texture "
+                  f"{', '.join('t%d' % r['slot'] for r in rs)})   [{indices.index(n) + 1}/{len(indices)}]", flush=True)
         except Skip as e:
             skipped.append(n); print(f"SKIP  ps_{n}: {e}", flush=True)
         except Exception as e:
             skipped.append(n); print(f"FAIL  ps_{n}: {e}", flush=True)
     (out_dir / "bindings.json").write_text(json.dumps(results, indent=2))
-    print(f"\n{len(results)} built, {len(skipped)} skipped or failed{': ' + str(skipped) if skipped else ''}")
+    print(f"\n{len({r['ps'] for r in results})} built, {len(skipped)} skipped or failed{': ' + str(skipped) if skipped else ''}")
     sys.exit(0 if results else 1)
 
 if __name__ == "__main__":

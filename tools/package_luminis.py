@@ -12,12 +12,21 @@ import argparse, json, pathlib, struct, sys, zipfile, zlib
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 MOD = pathlib.Path(r"D:\SquareEnix\Luminis Dev")
-GAME_VERSION = "2026.09.15"
+def _latest_game_version():
+    """The newest vanilla/<game version>/ folder (named after the game version it was taken from)."""
+    folders = sorted(p.name for p in (ROOT / "vanilla").iterdir() if p.is_dir() and p.name[:4].isdigit()) \
+        if (ROOT / "vanilla").exists() else []
+    return folders[-1] if folders else "unknown"
+
+GAME_VERSION = _latest_game_version()
 PARTS = [
-    ("Eyes", "iris", "Glow for eyes (iris.shpk): painted masks in the eye mask alpha, hue glow maps, rainbow."),
-    ("Hair", "hair", "Glow for hair (hair.shpk): whole hair, highlights, main color, or a painted Luminis texture."),
-    ("Skin", "skin", "Glow for skin (skin.shpk): tattoo masks in the alpha of the body's color texture. Works with TBSE, Bibo and other body mods."),
+    ("Eyes", "iris", "Glow for eyes (iris.shpk): a natural glowing iris, glow layers, emissive masks of glow-editable eye mods."),
+    ("Hair", "hair", "Glow for hair (hair.shpk): whole hair, highlights, main color, or glow layers."),
+    ("Skin", "skin", "Glow for skin (skin.shpk): glow layers for tattoos. Works with TBSE, Bibo and other body mods."),
+    ("Gear", "characterlegacy", "Glow for most gear, minions, mounts and weapons (characterlegacy.shpk)."),
+    ("Gear (newer)", "character", "Glow for newer gear, minions, mounts and weapons (character.shpk)."),
 ]
+OPTIONAL = {"characterlegacy", "character"}   # gear parts: included when built
 DESCRIPTION = """Luminis: light-sensitive, multi-color glow for eyes, hair and skin, rebuilt for Dawntrail.
 
 This mod replaces the eye, hair and skin shaders with Luminis versions. On its own it changes nothing: a material only glows when it has Luminis settings with an intensity above 0. Glow-enabled eye, hair, tattoo and body mods provide those settings.
@@ -53,6 +62,9 @@ def main():
         shpk = MOD / "shader" / "sm5" / "shpk" / f"{name}.shpk"
         devkit = ROOT / "devkit" / f"{name}.json"
         if not shpk.exists():
+            if name in OPTIONAL:
+                print(f"  (skipping {label}: {shpk.name} not built yet; run build_gear.py to include it)")
+                continue
             sys.exit(f"STOPPED: {shpk} not found; run build_{name}.py first")
         if not devkit.exists():
             sys.exit(f"STOPPED: {devkit} not found")

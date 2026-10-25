@@ -13,28 +13,15 @@ import pathlib, struct, sys
 def fail(msg):
     sys.exit(f"STOPPED: {msg}\nNothing was written.")
 
-def main():
-    src, out_dir = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
-    data = src.read_bytes()
-    if data[:4] != b"ShPk":
-        fail("not a .shpk file")
-    file_len, blobs_off, strings_off, vs_count, ps_count = struct.unpack_from("<IIIII", data, 12)
-    if file_len != len(data) or not (0 < blobs_off <= strings_off <= len(data)):
-        fail("header layout is not what this tool expects")
-    table = data[:blobs_off]
-
-    entries = []  # (table position, rel offset, size)
-    pos = blobs_off
+def scan_entries(data, table, blobs_off, strings_off):
+    """Fallback: find each DXBC blob and the table entry that points at it."""
+    entries, pos = [], blobs_off
     while pos < strings_off:
         nxt = data.find(b"DXBC", pos, strings_off)
         if nxt < 0:
             break
         size = struct.unpack_from("<I", data, nxt + 24)[0]  # DXBC total size field
-        rel = nxt - blobs_off
-        # Pixel shader entries point straight at the DXBC data. Vertex shader entries may
-        # include a small header in front of it, so also try entries starting up to 32
-        # bytes earlier (and correspondingly larger).
-        found = False
+        rel, found = nxt - blobs_off, False
         for pre in range(0, 33):
             if rel - pre < 0:
                 break
@@ -47,6 +34,33 @@ def main():
             if found:
                 break
         pos = nxt + (size if found else 4)  # not found: orphaned blob from an earlier patch
+    return entries
+
+def main():
+    src, out_dir = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
+    data = src.read_bytes()
+    if data[:4] != b"ShPk":
+        fail("not a .shpk file")
+    file_len, blobs_off, strings_off, vs_count, ps_count = struct.unpack_from("<IIIII", data, 12)
+    if file_len != len(data) or not (0 < blobs_off <= strings_off <= len(data)):
+        fail("header layout is not what this tool expects")
+    table = data[:blobs_off]
+
+    # Read the shader table entry by entry (20-byte header + 16 bytes per resource, back to back
+    # after the 88-byte file header). Every entry must point at DXBC data; vertex shader entries may
+    # have a small header in front of it.
+    entries = []  # (table position, rel offset, size, header bytes before DXBC)
+    try:
+        pos = 88
+        for _ in range(vs_count + ps_count):
+            off, size, c, s_, u, t = struct.unpack_from("<IIHHHH", data, pos)
+            pre = data.find(b"DXBC", blobs_off + off, blobs_off + off + min(size, 40)) - (blobs_off + off)
+            if pre < 0:
+                raise ValueError
+            entries.append((pos, off, size, pre))
+            pos += 20 + 16 * (c + s_ + u + t)
+    except (ValueError, struct.error):
+        entries = scan_entries(data, table, blobs_off, strings_off)
 
     entries.sort()
     if len(entries) != vs_count + ps_count:

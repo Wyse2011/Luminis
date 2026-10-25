@@ -46,6 +46,17 @@ def main():
 
     table = bytes(data[:blobs_off])
     blob_region = bytes(data[blobs_off:strings_off])
+    # Read the shader table entry by entry: pixel shader n is entry vs_count + n.
+    vs_count, ps_count = struct.unpack_from("<II", data, 24)
+    direct = []
+    try:
+        pos = 88
+        for _ in range(vs_count + ps_count):
+            off, size, c, s_, u, t = struct.unpack_from("<IIHHHH", data, pos)
+            direct.append((pos, off, size))
+            pos += 20 + 16 * (c + s_ + u + t)
+    except struct.error:
+        direct = []
     plan = []
     for n in indices:
         orig = (orig_dir / f"ps_{n}.dxbc").read_bytes()
@@ -53,6 +64,12 @@ def main():
         new = new_path.read_bytes()
         if new[:4] != b"DXBC" or orig[:4] != b"DXBC":
             fail(f"ps_{n}: one of the blobs is not a DXBC shader")
+        if direct and vs_count + n < len(direct):
+            epos, off, size = direct[vs_count + n]
+            if size == len(orig) and blob_region[off:off + size] == orig:
+                plan.append((n, epos, new, new_path.name))
+                continue
+            fail(f"ps_{n}: the shader table entry doesn't point at the original blob (wrong file, or already patched?)")
         pos = blob_region.find(orig)
         if pos < 0:
             fail(f"ps_{n}: original blob not found in {src.name} (wrong file, or already patched?)")

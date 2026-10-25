@@ -77,9 +77,11 @@ def add_global_texture(d, name):
     if any(t_["name"] == name for t_ in texs):
         print(f"{name} is already declared")
         return d
-    diffuse = [t_ for t_ in texs if t_["name"] == "g_SamplerDiffuse"]
+    # Model the new entry on an existing material-provided texture (slot 2), preferably the color texture.
+    diffuse = [t_ for t_ in texs if t_["name"] == "g_SamplerDiffuse"] or \
+              [t_ for t_ in texs if t_["istex"] == 1 and t_["slot"] == 2]
     if not diffuse:
-        fail("package has no g_SamplerDiffuse to model a material texture on")
+        fail("package has no material texture to model the new one on")
     rid = zlib.crc32(name.encode(), 0xFFFFFFFF) ^ 0xFFFFFFFF
     stroff = len(d) - strings_off           # new name goes at the very end of the string table
     entry = struct.pack("<IIHHHH", rid, stroff, len(name), diffuse[0]["istex"], diffuse[0]["slot"], diffuse[0]["size"])
@@ -111,7 +113,7 @@ def main():
     ap.add_argument("--slot", type=int)
     ap.add_argument("--sampler")
     ap.add_argument("--bindings", help="JSON list from luminis_asm.py; adds every entry with add_binding")
-    ap.add_argument("--declare", help="first declare a new material texture with this name (e.g. g_SamplerLuminis)")
+    ap.add_argument("--declare", help="first declare new material textures, comma separated (e.g. g_SamplerLuminis,g_SamplerLuminis2)")
     a = ap.parse_args()
     if a.bindings:
         jobs = [b for b in json.loads(pathlib.Path(a.bindings).read_text()) if b.get("add_binding")]
@@ -124,7 +126,8 @@ def main():
         fail("give --ps/--texture/--slot/--sampler, or --bindings FILE")
     d = bytearray(pathlib.Path(a.src).read_bytes())
     if a.declare:
-        d = bytearray(add_global_texture(d, a.declare))
+        for name in [x.strip() for x in a.declare.split(",") if x.strip()]:
+            d = bytearray(add_global_texture(d, name))
     for job in jobs:
         d = add_one(d, *job)
     pathlib.Path(a.out).parent.mkdir(parents=True, exist_ok=True)

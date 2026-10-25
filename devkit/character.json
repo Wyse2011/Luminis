@@ -1,0 +1,1051 @@
+{
+  "Comment": "Luminis glow for newer gear, minions, mounts and weapons (character.shpk). Glow comes from glow layers: textures painted over the item's texture layout, colored where it glows and transparent elsewhere (g_SamplerLuminis and g_SamplerLuminis2). Settings with intensity 0 never glow.",
+  "Constants": {
+    "2657300338": [
+      {
+        "Offset": 0,
+        "Length": 3,
+        "Type": "Color",
+        "Group": "Luminis Glow",
+        "Label": "Glow tint",
+        "Description": "Multiplies the glow color. White keeps the glow layer's own colors."
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Glow",
+        "Label": "Glow intensity",
+        "Description": "How bright the glow is. 0 turns Luminis off for this material. Lower values keep painted designs crisp; higher values bloom.",
+        "Minimum": 0,
+        "Maximum": 10,
+        "Speed": 0.02,
+        "Precision": 2
+      }
+    ],
+    "2469346156": [
+      {
+        "Offset": 0,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Glow",
+        "Label": "Dark start",
+        "Description": "Light level below which the glow is fully on (in dark mode). Lower = only glows in deeper darkness.",
+        "Minimum": 0,
+        "Maximum": 2,
+        "Speed": 0.002,
+        "Precision": 3
+      },
+      {
+        "Offset": 1,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Glow",
+        "Label": "Dark end",
+        "Description": "Light level above which the glow is fully off (in dark mode). The gap between start and end sets how gradually it fades.",
+        "Minimum": 0,
+        "Maximum": 2,
+        "Speed": 0.002,
+        "Precision": 3
+      },
+      {
+        "Offset": 2,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Glow",
+        "Label": "Glow mode",
+        "Description": "When the glow appears.",
+        "Values": [
+          {
+            "Label": "Always on",
+            "Value": 0,
+            "Description": "Ignores lighting."
+          },
+          {
+            "Label": "Glow in darkness",
+            "Value": 1,
+            "Description": "Fades in as light drops."
+          },
+          {
+            "Label": "Glow in light",
+            "Value": 2,
+            "Description": "Fades in as light rises."
+          }
+        ]
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Glow",
+        "Label": "Light sensitivity",
+        "Description": "How strongly the mode applies. 0 = always on regardless of mode, 1 = full effect.",
+        "Minimum": 0,
+        "Maximum": 1,
+        "Speed": 0.01,
+        "Precision": 3
+      }
+    ],
+    "654612545": [
+      {
+        "Offset": 0,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Glow",
+        "Label": "Color source",
+        "Description": "0 = tint only, 1 = the item's color texture (dye colors not included), 2 = the glow layer's colors, or the rows' Emissive Colors with Glow area: Color table emissive (default), 3 = rainbow along the texture. In-between values blend.",
+        "Minimum": 0,
+        "Maximum": 3,
+        "Speed": 0.01,
+        "Precision": 2
+      },
+      {
+        "Offset": 1,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Glow",
+        "Label": "Area mix",
+        "Description": "0 = react to light hitting the skin (shadows, facing a lamp), 1 = react to the area's overall brightness only (steady while turning). 0.5 is a good balance.",
+        "Minimum": 0,
+        "Maximum": 1,
+        "Speed": 0.01,
+        "Precision": 3
+      },
+      {
+        "Offset": 2,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Glow",
+        "Label": "Glow area",
+        "Description": "Which parts of the item glow.",
+        "Values": [
+          {
+            "Label": "Glow layer",
+            "Value": 0,
+            "Description": "Where the glow layer texture is painted (not transparent)."
+          },
+          {
+            "Label": "Whole item",
+            "Value": 1,
+            "Description": "Everything using this material."
+          },
+          {
+            "Label": "Color table emissive",
+            "Value": 2,
+            "Description": "Each color table row's Emissive Color decides where it glows and in which color (set them in the Color Table section; black rows don't glow). The game's own always-on row glow is switched off, so Luminis adds light sensitivity and animation. Use Color source 2 for the row colors."
+          }
+        ]
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Glow",
+        "Label": "Debug view",
+        "Description": "Replaces the eye with diagnostic information. Set back to Off when done.",
+        "Values": [
+          {
+            "Label": "Off",
+            "Value": 0
+          },
+          {
+            "Label": "Glow mask",
+            "Value": 1,
+            "Description": "White where the mask allows glow."
+          },
+          {
+            "Label": "Light level",
+            "Value": 2,
+            "Description": "Gray value of the light the shader measures."
+          },
+          {
+            "Label": "Light gate",
+            "Value": 3,
+            "Description": "White = glow fully on, black = off."
+          },
+          {
+            "Label": "Glow only",
+            "Value": 4,
+            "Description": "Shows only the glow, without the lit eye."
+          },
+          {
+            "Label": "Clock",
+            "Value": 5,
+            "Description": "Shows the game clock as a black-to-white sweep, one sweep per clock unit, to calibrate Speed."
+          },
+          {
+            "Label": "Layer 2 mask",
+            "Value": 6,
+            "Description": "White where glow layer 2 would glow."
+          },
+          {
+            "Label": "Layer 2 light gate",
+            "Value": 7,
+            "Description": "White where glow layer 2 is currently switched on by its glow mode."
+          }
+        ]
+      }
+    ],
+    "2602692533": [
+      {
+        "Offset": 0,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Glow",
+        "Label": "Detail",
+        "Description": "0 = flat glow, 1 = the skin's own light and dark pattern shows through the glow.",
+        "Minimum": 0,
+        "Maximum": 1,
+        "Speed": 0.01,
+        "Precision": 3
+      },
+      {
+        "Offset": 1,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Glow",
+        "Label": "Detail gain",
+        "Description": "Brightens the detail pattern. Raise it if detail makes the glow too dim.",
+        "Minimum": 0,
+        "Maximum": 8,
+        "Speed": 0.02,
+        "Precision": 2
+      },
+      {
+        "Offset": 2,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Glow",
+        "Label": "Rainbow length",
+        "Description": "How many times the rainbow repeats down the texture (color source 3). Negative values reverse it.",
+        "Minimum": -8,
+        "Maximum": 8,
+        "Speed": 0.01,
+        "Precision": 2
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Glow",
+        "Label": "Rainbow shift",
+        "Description": "Moves the rainbow colors (color source 3).",
+        "Minimum": 0,
+        "Maximum": 1,
+        "Speed": 0.005,
+        "Precision": 3
+      }
+    ],
+    "3729917104": [
+      {
+        "Offset": 0,
+        "Length": 16,
+        "Type": "Hidden"
+      }
+    ],
+    "1057547936": [
+      {
+        "Offset": 0,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Animation",
+        "Label": "Animation",
+        "Description": "Makes the glow change over time.",
+        "Values": [
+          {
+            "Label": "Off",
+            "Value": 0,
+            "Description": "Steady glow."
+          },
+          {
+            "Label": "Blink",
+            "Value": 1,
+            "Description": "Switches between the glow and nothing. Softness 0 = hard flash, 1 = smooth pulse."
+          },
+          {
+            "Label": "Two-color",
+            "Value": 2,
+            "Description": "Alternates between Glow tint and Strobe color."
+          },
+          {
+            "Label": "Color steps",
+            "Value": 3,
+            "Description": "Steps through evenly spaced rainbow colors (see Steps). Rainbow shift picks the starting color. Like Two-color, it keeps the surface's dark parts (such as the pupil) dark."
+          },
+          {
+            "Label": "Chroma",
+            "Value": 4,
+            "Description": "Spins smoothly through the whole rainbow. On hair and skin, Rainbow length above 0 adds moving color bands. Like Two-color, it keeps the surface's dark parts (such as the pupil) dark."
+          },
+          {
+            "Label": "Custom colors",
+            "Value": 5,
+            "Description": "Cycles through your own colors: Glow tint, Color 2, Color 3 and Color 4. Steps sets how many (2 to 4)."
+          },
+          {
+            "Label": "Pulse",
+            "Value": 6,
+            "Description": "Like Blink, but swings between Pulse minimum and Pulse maximum instead of switching off. Softness 1 = smooth breathing pulse."
+          },
+          {
+            "Label": "Hue cycle",
+            "Value": 7,
+            "Description": "Every glow color rotates around the color wheel at once, keeping its place, so a painted rainbow gradient flows through the design. Uses the color source's own colors (Color source 2 for a glow layer)."
+          }
+        ]
+      },
+      {
+        "Offset": 1,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Animation",
+        "Label": "Speed",
+        "Description": "Cycles per clock unit (see Debug view: Clock). Small values are slow; negative values run backwards.",
+        "Minimum": -10,
+        "Maximum": 10,
+        "Speed": 0.002,
+        "Precision": 3
+      },
+      {
+        "Offset": 2,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Animation",
+        "Label": "Steps",
+        "Description": "Color steps: how many rainbow colors (2 to 12; 3 gives red, green, blue). Custom colors: how many of your colors to use (2 to 4).",
+        "Minimum": 2,
+        "Maximum": 12,
+        "Speed": 0.05,
+        "Precision": 0
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Animation",
+        "Label": "Softness",
+        "Description": "0 = hard switch between states, 1 = smooth fade.",
+        "Minimum": 0,
+        "Maximum": 1,
+        "Speed": 0.01,
+        "Precision": 2
+      }
+    ],
+    "3024841222": [
+      {
+        "Offset": 0,
+        "Length": 3,
+        "Type": "Color",
+        "Group": "Luminis Animation",
+        "Label": "Color 2 (strobe color)",
+        "Description": "The second color for Two-color and Custom colors. Glow tint is the first."
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Hidden"
+      }
+    ],
+    "1443336009": [
+      {
+        "Offset": 0,
+        "Length": 3,
+        "Type": "Color",
+        "Group": "Luminis Animation",
+        "Label": "Color 3",
+        "Description": "The third color for Custom colors (used when Steps is 3 or 4)."
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Animation",
+        "Label": "pulse minimum",
+        "Description": "Pulse: the lowest brightness, as a fraction of the intensity. 0.15 = 15%; 0 = fades out completely like Blink.",
+        "Minimum": 0,
+        "Maximum": 1,
+        "Speed": 0.005,
+        "Precision": 2
+      }
+    ],
+    "3361938154": [
+      {
+        "Offset": 0,
+        "Length": 3,
+        "Type": "Color",
+        "Group": "Luminis Animation",
+        "Label": "Color 4",
+        "Description": "The fourth color for Custom colors (used when Steps is 4)."
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Animation",
+        "Label": "pulse maximum",
+        "Description": "Pulse: the highest brightness, as a fraction of the intensity. 1 = full intensity.",
+        "Minimum": 0,
+        "Maximum": 1,
+        "Speed": 0.005,
+        "Precision": 2
+      }
+    ],
+    "4190601817": [
+      {
+        "Offset": 0,
+        "Length": 3,
+        "Type": "Color",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 tint",
+        "Description": "Multiplies glow layer 2's painted colors. White keeps them as painted."
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 intensity",
+        "Description": "Brightness of glow layer 2. 0 turns layer 2 off.",
+        "Minimum": 0,
+        "Maximum": 20,
+        "Speed": 0.01,
+        "Precision": 2
+      }
+    ],
+    "4102788679": [
+      {
+        "Offset": 0,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 dark start",
+        "Description": "Light level below which layer 2 glows fully (Glow in darkness).",
+        "Minimum": 0,
+        "Maximum": 2,
+        "Speed": 0.001,
+        "Precision": 3
+      },
+      {
+        "Offset": 1,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 dark end",
+        "Description": "Light level above which layer 2 stops glowing (Glow in darkness).",
+        "Minimum": 0,
+        "Maximum": 2,
+        "Speed": 0.001,
+        "Precision": 3
+      },
+      {
+        "Offset": 2,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 glow mode",
+        "Description": "When glow layer 2 glows, independently of layer 1.",
+        "Values": [
+          {
+            "Label": "Always on",
+            "Value": 0,
+            "Description": "Ignores lighting."
+          },
+          {
+            "Label": "Glow in darkness",
+            "Value": 1,
+            "Description": "Fades in as light drops."
+          },
+          {
+            "Label": "Glow in light",
+            "Value": 2,
+            "Description": "Fades in as light rises."
+          }
+        ]
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 light sensitivity",
+        "Description": "How strongly layer 2's glow mode applies. 0 ignores lighting.",
+        "Minimum": 0,
+        "Maximum": 1,
+        "Speed": 0.01,
+        "Precision": 2
+      }
+    ],
+    "1190068539": [
+      {
+        "Offset": 0,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 animation",
+        "Description": "Makes glow layer 2 change over time, independently of layer 1.",
+        "Values": [
+          {
+            "Label": "Off",
+            "Value": 0,
+            "Description": "Steady glow."
+          },
+          {
+            "Label": "Blink",
+            "Value": 1,
+            "Description": "Switches between the glow and nothing. Softness 0 = hard flash, 1 = smooth pulse."
+          },
+          {
+            "Label": "Two-color",
+            "Value": 2,
+            "Description": "Alternates between Glow tint and Strobe color."
+          },
+          {
+            "Label": "Color steps",
+            "Value": 3,
+            "Description": "Steps through evenly spaced rainbow colors (see Steps). Rainbow shift picks the starting color. Like Two-color, it keeps the surface's dark parts (such as the pupil) dark."
+          },
+          {
+            "Label": "Chroma",
+            "Value": 4,
+            "Description": "Spins smoothly through the whole rainbow. On hair and skin, Rainbow length above 0 adds moving color bands. Like Two-color, it keeps the surface's dark parts (such as the pupil) dark."
+          },
+          {
+            "Label": "Custom colors",
+            "Value": 5,
+            "Description": "Cycles through your own colors: Layer 2 tint and Layer 2 colors 2 to 4. Steps sets how many (2 to 4)."
+          },
+          {
+            "Label": "Pulse",
+            "Value": 6,
+            "Description": "Like Blink, but swings between Pulse minimum and Pulse maximum instead of switching off. Softness 1 = smooth breathing pulse."
+          },
+          {
+            "Label": "Hue cycle",
+            "Value": 7,
+            "Description": "Every glow color rotates around the color wheel at once, keeping its place, so a painted rainbow gradient flows through the design. Uses the color source's own colors (Color source 2 for a glow layer)."
+          }
+        ]
+      },
+      {
+        "Offset": 1,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 speed",
+        "Description": "Cycles per clock unit (see Debug view: Clock). Small values are slow; negative values run backwards.",
+        "Minimum": -10,
+        "Maximum": 10,
+        "Speed": 0.002,
+        "Precision": 3
+      },
+      {
+        "Offset": 2,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 steps",
+        "Description": "Color steps: how many rainbow colors (2 to 12; 3 gives red, green, blue). Custom colors: how many of your colors to use (2 to 4).",
+        "Minimum": 2,
+        "Maximum": 12,
+        "Speed": 0.05,
+        "Precision": 0
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 softness",
+        "Description": "0 = hard switch between states, 1 = smooth fade.",
+        "Minimum": 0,
+        "Maximum": 1,
+        "Speed": 0.01,
+        "Precision": 2
+      }
+    ],
+    "191168796": [
+      {
+        "Offset": 0,
+        "Length": 3,
+        "Type": "Color",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 color 2",
+        "Description": "Layer 2's second color for Two-color and Custom colors. Layer 2 tint is its first."
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 color source",
+        "Description": "Where layer 2's colors come from: 0 = Layer 2 tint only (pure animation colors, the painting only decides where it glows), 1 = the surface's own color, 2 = layer 2's painted colors (default), 3 = rainbow. In-between values blend.",
+        "Minimum": 0,
+        "Maximum": 3,
+        "Speed": 0.01,
+        "Precision": 2
+      }
+    ],
+    "2883213400": [
+      {
+        "Offset": 0,
+        "Length": 3,
+        "Type": "Color",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 color 3",
+        "Description": "Layer 2's third color for Custom colors (Layer 2 steps 3 or 4)."
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 pulse minimum",
+        "Description": "Pulse: the lowest brightness, as a fraction of the intensity. 0.15 = 15%; 0 = fades out completely like Blink.",
+        "Minimum": 0,
+        "Maximum": 1,
+        "Speed": 0.005,
+        "Precision": 2
+      }
+    ],
+    "901697019": [
+      {
+        "Offset": 0,
+        "Length": 3,
+        "Type": "Color",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 color 4",
+        "Description": "Layer 2's fourth color for Custom colors (Layer 2 steps 4)."
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Float",
+        "Group": "Luminis Layer 2",
+        "Label": "Layer 2 pulse maximum",
+        "Description": "Pulse: the highest brightness, as a fraction of the intensity. 1 = full intensity.",
+        "Minimum": 0,
+        "Maximum": 1,
+        "Speed": 0.005,
+        "Precision": 2
+      }
+    ],
+    "3660746918": [
+      {
+        "Offset": 0,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Rows",
+        "Label": "Row 01",
+        "Description": "Color table row #01 (A and B): animated, static or off.",
+        "Values": [
+          {
+            "Label": "Animated",
+            "Value": 0,
+            "Description": "Glows and follows the material's Animation (Chroma, Hue cycle, Pulse, ...)."
+          },
+          {
+            "Label": "Static",
+            "Value": 1,
+            "Description": "Glows steadily, without animation (in its Emissive Color with Glow area: Color table emissive)."
+          },
+          {
+            "Label": "Off",
+            "Value": 2,
+            "Description": "Never glows."
+          }
+        ]
+      },
+      {
+        "Offset": 1,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Rows",
+        "Label": "Row 02",
+        "Description": "Color table row #02 (A and B): animated, static or off.",
+        "Values": [
+          {
+            "Label": "Animated",
+            "Value": 0,
+            "Description": "Glows and follows the material's Animation (Chroma, Hue cycle, Pulse, ...)."
+          },
+          {
+            "Label": "Static",
+            "Value": 1,
+            "Description": "Glows steadily, without animation (in its Emissive Color with Glow area: Color table emissive)."
+          },
+          {
+            "Label": "Off",
+            "Value": 2,
+            "Description": "Never glows."
+          }
+        ]
+      },
+      {
+        "Offset": 2,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Rows",
+        "Label": "Row 03",
+        "Description": "Color table row #03 (A and B): animated, static or off.",
+        "Values": [
+          {
+            "Label": "Animated",
+            "Value": 0,
+            "Description": "Glows and follows the material's Animation (Chroma, Hue cycle, Pulse, ...)."
+          },
+          {
+            "Label": "Static",
+            "Value": 1,
+            "Description": "Glows steadily, without animation (in its Emissive Color with Glow area: Color table emissive)."
+          },
+          {
+            "Label": "Off",
+            "Value": 2,
+            "Description": "Never glows."
+          }
+        ]
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Rows",
+        "Label": "Row 04",
+        "Description": "Color table row #04 (A and B): animated, static or off.",
+        "Values": [
+          {
+            "Label": "Animated",
+            "Value": 0,
+            "Description": "Glows and follows the material's Animation (Chroma, Hue cycle, Pulse, ...)."
+          },
+          {
+            "Label": "Static",
+            "Value": 1,
+            "Description": "Glows steadily, without animation (in its Emissive Color with Glow area: Color table emissive)."
+          },
+          {
+            "Label": "Off",
+            "Value": 2,
+            "Description": "Never glows."
+          }
+        ]
+      }
+    ],
+    "1127989532": [
+      {
+        "Offset": 0,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Rows",
+        "Label": "Row 05",
+        "Description": "Color table row #05 (A and B): animated, static or off.",
+        "Values": [
+          {
+            "Label": "Animated",
+            "Value": 0,
+            "Description": "Glows and follows the material's Animation (Chroma, Hue cycle, Pulse, ...)."
+          },
+          {
+            "Label": "Static",
+            "Value": 1,
+            "Description": "Glows steadily, without animation (in its Emissive Color with Glow area: Color table emissive)."
+          },
+          {
+            "Label": "Off",
+            "Value": 2,
+            "Description": "Never glows."
+          }
+        ]
+      },
+      {
+        "Offset": 1,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Rows",
+        "Label": "Row 06",
+        "Description": "Color table row #06 (A and B): animated, static or off.",
+        "Values": [
+          {
+            "Label": "Animated",
+            "Value": 0,
+            "Description": "Glows and follows the material's Animation (Chroma, Hue cycle, Pulse, ...)."
+          },
+          {
+            "Label": "Static",
+            "Value": 1,
+            "Description": "Glows steadily, without animation (in its Emissive Color with Glow area: Color table emissive)."
+          },
+          {
+            "Label": "Off",
+            "Value": 2,
+            "Description": "Never glows."
+          }
+        ]
+      },
+      {
+        "Offset": 2,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Rows",
+        "Label": "Row 07",
+        "Description": "Color table row #07 (A and B): animated, static or off.",
+        "Values": [
+          {
+            "Label": "Animated",
+            "Value": 0,
+            "Description": "Glows and follows the material's Animation (Chroma, Hue cycle, Pulse, ...)."
+          },
+          {
+            "Label": "Static",
+            "Value": 1,
+            "Description": "Glows steadily, without animation (in its Emissive Color with Glow area: Color table emissive)."
+          },
+          {
+            "Label": "Off",
+            "Value": 2,
+            "Description": "Never glows."
+          }
+        ]
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Rows",
+        "Label": "Row 08",
+        "Description": "Color table row #08 (A and B): animated, static or off.",
+        "Values": [
+          {
+            "Label": "Animated",
+            "Value": 0,
+            "Description": "Glows and follows the material's Animation (Chroma, Hue cycle, Pulse, ...)."
+          },
+          {
+            "Label": "Static",
+            "Value": 1,
+            "Description": "Glows steadily, without animation (in its Emissive Color with Glow area: Color table emissive)."
+          },
+          {
+            "Label": "Off",
+            "Value": 2,
+            "Description": "Never glows."
+          }
+        ]
+      }
+    ],
+    "876409226": [
+      {
+        "Offset": 0,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Rows",
+        "Label": "Row 09",
+        "Description": "Color table row #09 (A and B): animated, static or off.",
+        "Values": [
+          {
+            "Label": "Animated",
+            "Value": 0,
+            "Description": "Glows and follows the material's Animation (Chroma, Hue cycle, Pulse, ...)."
+          },
+          {
+            "Label": "Static",
+            "Value": 1,
+            "Description": "Glows steadily, without animation (in its Emissive Color with Glow area: Color table emissive)."
+          },
+          {
+            "Label": "Off",
+            "Value": 2,
+            "Description": "Never glows."
+          }
+        ]
+      },
+      {
+        "Offset": 1,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Rows",
+        "Label": "Row 10",
+        "Description": "Color table row #10 (A and B): animated, static or off.",
+        "Values": [
+          {
+            "Label": "Animated",
+            "Value": 0,
+            "Description": "Glows and follows the material's Animation (Chroma, Hue cycle, Pulse, ...)."
+          },
+          {
+            "Label": "Static",
+            "Value": 1,
+            "Description": "Glows steadily, without animation (in its Emissive Color with Glow area: Color table emissive)."
+          },
+          {
+            "Label": "Off",
+            "Value": 2,
+            "Description": "Never glows."
+          }
+        ]
+      },
+      {
+        "Offset": 2,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Rows",
+        "Label": "Row 11",
+        "Description": "Color table row #11 (A and B): animated, static or off.",
+        "Values": [
+          {
+            "Label": "Animated",
+            "Value": 0,
+            "Description": "Glows and follows the material's Animation (Chroma, Hue cycle, Pulse, ...)."
+          },
+          {
+            "Label": "Static",
+            "Value": 1,
+            "Description": "Glows steadily, without animation (in its Emissive Color with Glow area: Color table emissive)."
+          },
+          {
+            "Label": "Off",
+            "Value": 2,
+            "Description": "Never glows."
+          }
+        ]
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Rows",
+        "Label": "Row 12",
+        "Description": "Color table row #12 (A and B): animated, static or off.",
+        "Values": [
+          {
+            "Label": "Animated",
+            "Value": 0,
+            "Description": "Glows and follows the material's Animation (Chroma, Hue cycle, Pulse, ...)."
+          },
+          {
+            "Label": "Static",
+            "Value": 1,
+            "Description": "Glows steadily, without animation (in its Emissive Color with Glow area: Color table emissive)."
+          },
+          {
+            "Label": "Off",
+            "Value": 2,
+            "Description": "Never glows."
+          }
+        ]
+      }
+    ],
+    "2857919529": [
+      {
+        "Offset": 0,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Rows",
+        "Label": "Row 13",
+        "Description": "Color table row #13 (A and B): animated, static or off.",
+        "Values": [
+          {
+            "Label": "Animated",
+            "Value": 0,
+            "Description": "Glows and follows the material's Animation (Chroma, Hue cycle, Pulse, ...)."
+          },
+          {
+            "Label": "Static",
+            "Value": 1,
+            "Description": "Glows steadily, without animation (in its Emissive Color with Glow area: Color table emissive)."
+          },
+          {
+            "Label": "Off",
+            "Value": 2,
+            "Description": "Never glows."
+          }
+        ]
+      },
+      {
+        "Offset": 1,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Rows",
+        "Label": "Row 14",
+        "Description": "Color table row #14 (A and B): animated, static or off.",
+        "Values": [
+          {
+            "Label": "Animated",
+            "Value": 0,
+            "Description": "Glows and follows the material's Animation (Chroma, Hue cycle, Pulse, ...)."
+          },
+          {
+            "Label": "Static",
+            "Value": 1,
+            "Description": "Glows steadily, without animation (in its Emissive Color with Glow area: Color table emissive)."
+          },
+          {
+            "Label": "Off",
+            "Value": 2,
+            "Description": "Never glows."
+          }
+        ]
+      },
+      {
+        "Offset": 2,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Rows",
+        "Label": "Row 15",
+        "Description": "Color table row #15 (A and B): animated, static or off.",
+        "Values": [
+          {
+            "Label": "Animated",
+            "Value": 0,
+            "Description": "Glows and follows the material's Animation (Chroma, Hue cycle, Pulse, ...)."
+          },
+          {
+            "Label": "Static",
+            "Value": 1,
+            "Description": "Glows steadily, without animation (in its Emissive Color with Glow area: Color table emissive)."
+          },
+          {
+            "Label": "Off",
+            "Value": 2,
+            "Description": "Never glows."
+          }
+        ]
+      },
+      {
+        "Offset": 3,
+        "Length": 1,
+        "Type": "Enum",
+        "Group": "Luminis Rows",
+        "Label": "Row 16",
+        "Description": "Color table row #16 (A and B): animated, static or off.",
+        "Values": [
+          {
+            "Label": "Animated",
+            "Value": 0,
+            "Description": "Glows and follows the material's Animation (Chroma, Hue cycle, Pulse, ...)."
+          },
+          {
+            "Label": "Static",
+            "Value": 1,
+            "Description": "Glows steadily, without animation (in its Emissive Color with Glow area: Color table emissive)."
+          },
+          {
+            "Label": "Off",
+            "Value": 2,
+            "Description": "Never glows."
+          }
+        ]
+      }
+    ]
+  },
+  "Samplers": {
+    "764520549": {
+      "Label": "Luminis glow layer",
+      "Description": "Glow layer for the skin: a texture painted over the body texture layout, for example glowing tattoos. Its colors are the glow colors; transparent parts don't glow. Used when Glow area is Glow layer."
+    },
+    "4112668159": {
+      "Label": "Luminis glow layer 2",
+      "Description": "A second glow layer with its own intensity, tint, light behavior and animation (Luminis Layer 2 settings)."
+    }
+  }
+}
