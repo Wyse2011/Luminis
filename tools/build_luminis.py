@@ -9,7 +9,7 @@
 # (iris: eye color texture for the glow map; hair: the Luminis texture in the decal slot), and
 # patch the result into the mod. Shaders that can't be patched stay vanilla and are listed.
 # Restart the game afterwards.
-import json, pathlib, shutil, struct, subprocess, sys
+import json, pathlib, shutil, struct, subprocess, sys, hashlib
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 TOOLS = ROOT / "tools"
@@ -68,11 +68,12 @@ def step(title, args, allow_fail=False):
 
 def main():
     if len(sys.argv) < 2 or sys.argv[1] not in PROFILES:
-        sys.exit("usage: python tools\\build_luminis.py iris|hair|skin [INDEX ...]")
+        sys.exit("usage: python tools\\build_luminis.py iris|hair|skin|characterlegacy|character [INDEX ...]")
     profile = sys.argv[1]
     explicit = [int(x) for x in sys.argv[2:]]
     # The newest vanilla\<game version>\ folder that has this shader package (see luminis_game_extract.py).
-    candidates = sorted((p for p in (ROOT / "vanilla").glob(f"*/{profile}.shpk")), key=lambda p: p.parent.name)
+    candidates = sorted((p for p in (ROOT / "vanilla").glob(f"*/{profile}.shpk") if p.parent.name[:4].isdigit()),
+                        key=lambda p: p.parent.name)
     vanilla = candidates[-1] if candidates else ROOT / "vanilla" / "missing" / f"{profile}.shpk"
     print(f"Vanilla {profile}.shpk: {vanilla.parent.name}")
     blobs = ROOT / "blobs" / profile / "all"
@@ -80,8 +81,15 @@ def main():
     out_dir = ROOT / "compiled" / profile / "luminis"
     if not vanilla.exists():
         sys.exit(f"{vanilla} not found")
+    # Re-extract when the vanilla package changed (a game patch), so stale shaders are never reused.
+    source_tag = blobs / "source.txt"
+    source_id = f"{vanilla.parent.name} {hashlib.sha1(vanilla.read_bytes()).hexdigest()}"
+    if blobs.exists() and (not source_tag.exists() or source_tag.read_text().strip() != source_id):
+        print(f"Vanilla {profile}.shpk changed since the last extraction; re-extracting")
+        shutil.rmtree(blobs)
     if not blobs.exists():
         step("Extract vanilla shaders", [sys.executable, TOOLS / "shpk_extract.py", vanilla, blobs])
+        source_tag.write_text(source_id + "\n")
     indices = explicit or discover(profile, blobs)
     print(f"{len(indices)} {profile} shader(s) to patch" + ("" if explicit else " (every final-color variant, found automatically)"))
     if out_dir.exists():

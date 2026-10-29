@@ -3,14 +3,14 @@
 # Usage (from D:\luminis):
 #   python tools\luminis_asm.py PROFILE OUT_DIR INDEX [INDEX ...]
 #
-#   PROFILE  iris, hair or skin
+#   PROFILE  iris, hair, skin, characterlegacy or character
 #
 # For each pixel shader index it disassembles blobs\<profile>\all\ps_<N>.dxbc, compiles a small
 # HLSL "epilogue" (include\luminis_glow.hlsli plus profile-specific setup) with fxc for this
 # shader's registers, splices it in just before the final color is written, and reassembles
 # with the original signatures. Shaders that don't fit are reported and skipped.
 # Writes OUT_DIR\ps_<N>.dxbc and OUT_DIR\bindings.json (the extra texture binding each needs).
-import json, pathlib, re, shutil, subprocess, sys, time
+import json, pathlib, re, shutil, subprocess, sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DECOMPILER = ROOT / "tools" / "3dmigoto" / "cmd_Decompiler.exe"
@@ -58,7 +58,9 @@ Texture2D<float4> g_GBuffer2       : register(t{gb2});
 SamplerState      g_SamplerGBuffer : register(s{sgb});
 
 cbuffer cbPbrClock : register(b{pbr}) {{ float4 g_PbrParameterCommon[1]; }}
-#define LUMINIS_LAYER2 layer2
+Texture2D<float4> g_Luminis        : register(t{lum});
+Texture2D<float4> g_Luminis2       : register(t{lum2});
+#define LUMINIS_LAYER2 (layer2 * Luminis_LayerValid(g_Luminis2))
 #define LUMINIS_ANIMATE 1.0
 
 float4 main(float4 pos : SV_Position, float4 litColor : LUMINIS0, float4 cap : LUMINIS1, float4 layer : LUMINIS2, float4 layer2 : LUMINIS3) : SV_Target0
@@ -83,7 +85,9 @@ float4 main(float4 pos : SV_Position, float4 litColor : LUMINIS0, float4 cap : L
     // Emissive mask uses the game's own eye-glow brightness curve: the glow rises steeply with the
     // brightness of the eye's color texture (x1 dark .. x10 bright in vanilla), so a mod's design pops.
     float emissiveCurve = (saturate(3.5714286 * (Luminis_Luminance(albedo) - 0.02)) * 9.0 + 1.0) / 10.0;
-    li.glowMask         = area < 0.5 ? cap.z : (useLayer ? layer.w : (area < 2.5 ? cap.x : (area < 3.5 ? 1.0 : cap.w * emissiveCurve)));
+    // Unknown (newer) glow areas fall back to no glow, never to the whole eye.
+    li.glowMask         = area < 0.5 ? cap.z : (useLayer ? layer.w * Luminis_LayerValid(g_Luminis)
+                        : (area < 2.5 ? cap.x : (area < 3.5 ? 1.0 : (area < 4.5 ? cap.w * emissiveCurve : 0.0))));
     li.glowColor        = useLayer ? layer.rgb * layer.rgb : Luminis_HueToRGB(cap.y);
     li.rainbowHue       = cap.y;
     li.pixelSensitivity = 1.0;
@@ -103,7 +107,7 @@ Texture2D<float4> g_HairNormal    : register(t{nrm});
 Texture2D<float4> g_HairMask      : register(t{msk});
 Texture2D<float4> g_Luminis       : register(t{lum});
 Texture2D<float4> g_Luminis2      : register(t{lum2});
-#define LUMINIS_LAYER2 g_Luminis2.SampleBias(g_SamplerNormal, uv.xy, bias)
+#define LUMINIS_LAYER2 (g_Luminis2.SampleBias(g_SamplerNormal, uv.xy, bias) * Luminis_LayerValid(g_Luminis2))
 #define LUMINIS_ANIMATE 1.0
 SamplerState      g_SamplerNormal : register(s{smp});
 
@@ -121,7 +125,8 @@ float4 main(float4 pos : SV_Position, float4 col : COLOR0, float4 uv : TEXCOORD0
     // Glow area (g_LuminisMisc.z): 0 whole hair, 1 highlights only, 2 main color only, 3 glow layer (g_SamplerLuminis) alpha.
     float4 lum = g_Luminis.SampleBias(g_SamplerNormal, uv.xy, bias);
     float area = round(g_MaterialParameter[28].z);
-    float mask = area < 0.5 ? 1.0 : (area < 1.5 ? highlight : (area < 2.5 ? 1.0 - highlight : lum.w));
+    float mask = area < 0.5 ? 1.0 : (area < 1.5 ? highlight : (area < 2.5 ? 1.0 - highlight
+               : (area < 3.5 ? lum.w * Luminis_LayerValid(g_Luminis) : 0.0)));   // unknown areas: no glow
 
     LuminisInput li;
     // Highlight glow color (g_LuminisHighlight): when switched on (w), highlight streaks use their own tint.
@@ -146,7 +151,7 @@ cbuffer cbPbr    : register(b{pbr}) {{ float4 g_PbrParameterCommon[5]; }}
 Texture2D<float4> g_GBuffer2       : register(t{gb2});
 Texture2D<float4> g_Luminis        : register(t{lum});
 Texture2D<float4> g_Luminis2       : register(t{lum2});
-#define LUMINIS_LAYER2 g_Luminis2.SampleBias(g_SamplerNormal, uv.xy, bias)
+#define LUMINIS_LAYER2 (g_Luminis2.SampleBias(g_SamplerNormal, uv.xy, bias) * Luminis_LayerValid(g_Luminis2))
 #define LUMINIS_ANIMATE 1.0
 SamplerState      g_SamplerGBuffer : register(s{sgb});
 SamplerState      g_SamplerNormal  : register(s{smp});
@@ -165,7 +170,7 @@ float4 main(float4 pos : SV_Position, float4 uv : TEXCOORD0, float4 litColor : L
     float bias = g_PbrParameterCommon[0].w + g_MaterialParameter[16].x;
     float4 layer = g_Luminis.SampleBias(g_SamplerNormal, uv.xy, bias);
     float area = round(g_MaterialParameter[28].z);
-    float mask = area < 0.5 ? layer.w : 1.0;
+    float mask = area < 0.5 ? layer.w * Luminis_LayerValid(g_Luminis) : (area < 1.5 ? 1.0 : 0.0);   // unknown areas: no glow
 
     LuminisInput li;
     li.tint             = LUMINIS_P0.rgb;
@@ -203,7 +208,7 @@ SamplerState      g_SamplerGBuffer : register(s{sgb});
 Texture2D<float4> g_GearIndex     : register(t{idx});
 SamplerState      g_SamplerIndex  : register(s{idxs});
 #endif
-#define LUMINIS_LAYER2 g_Luminis2.SampleBias(g_SamplerNormal, uv.xy, bias)
+#define LUMINIS_LAYER2 (g_Luminis2.SampleBias(g_SamplerNormal, uv.xy, bias) * Luminis_LayerValid(g_Luminis2))
 #define LUMINIS_ANIMATE rowAnimate
 
 float4 main(float4 pos : SV_Position, float4 uv : TEXCOORD0, float4 litColor : LUMINIS0, float4 emis : LUMINIS1) : SV_Target0
@@ -247,7 +252,8 @@ float4 main(float4 pos : SV_Position, float4 uv : TEXCOORD0, float4 litColor : L
     LuminisInput li;
     li.tint             = LUMINIS_P0.rgb;
     li.albedo           = albedo;
-    li.glowMask         = (area < 0.5 ? lum.w : (area < 1.5 ? 1.0 : saturate(emisMax))) * rowOn;
+    li.glowMask         = (area < 0.5 ? lum.w * Luminis_LayerValid(g_Luminis) : (area < 1.5 ? 1.0
+                        : (area < 2.5 ? saturate(emisMax) : 0.0))) * rowOn;   // unknown areas: no glow
     li.glowColor        = area < 1.5 ? lum.rgb * lum.rgb : emis.xyz / max(emisMax, 0.0001);
     li.rainbowHue       = uv.y * g_MaterialParameter[29].z + g_MaterialParameter[29].w;
     li.pixelSensitivity = 1.0;
@@ -266,7 +272,8 @@ float4 main(float4 pos : SV_Position, float4 uv : TEXCOORD0, float4 litColor : L
 }}
 """
 
-REG = re.compile(r"(?<![A-Za-z0-9_\[])([rvo])(\d+)(?=[.\s,\]|)]|$)")
+# Registers to rename: also inside brackets (cb0[r4.x + 41]), so runtime indexing reads the right register.
+REG = re.compile(r"(?<![A-Za-z0-9_])([rvo])(\d+)(?=[.\s,\]|)+]|$)")
 
 class Skip(Exception):
     pass
@@ -397,7 +404,8 @@ def patch_one(profile, n, out_dir, work_root):
                      ("g_SamplerLuminis", lum_t, samp_slot, True),
                      ("g_SamplerLuminis2", lum_t + 1, samp_slot, True)]
         pbr_b = need(b, "g_PbrParameterCommon", "cbuffer")
-        stub_src = IRIS_STUB.format(regs=MATERIAL_REGS, amb=amb_b, com=com_b, gb2=gb2_t, sgb=sgb_s, pbr=pbr_b)
+        stub_src = IRIS_STUB.format(regs=MATERIAL_REGS, amb=amb_b, com=com_b, gb2=gb2_t, sgb=sgb_s, pbr=pbr_b,
+                                    lum=lum_t, lum2=lum_t + 1)
     elif profile == "hair":
         nrm_t = need(b, "g_SamplerNormal.T", "texture")
         msk_t = need(b, "g_SamplerMask.T", "texture")
@@ -533,10 +541,10 @@ def patch_one(profile, n, out_dir, work_root):
             out.insert(res[-1] + 1, f"dcl_resource_texture2d (float,float,float,float) t{slot}")
     asm_path.write_text("\n".join(out) + "\n")
 
-    before = {p.name: p.stat().st_mtime for p in work.iterdir()}
-    time.sleep(1.1)
+    for old in work.glob("*.shdr"):   # so the assembler's output is the only .shdr afterwards
+        old.unlink()
     run([DECOMPILER, "-a", "--copy-reflection", src, asm_path.name], work)
-    produced = [p for p in work.iterdir() if p.suffix == ".shdr" and (p.name not in before or p.stat().st_mtime > before[p.name])]
+    produced = list(work.glob("*.shdr"))
     if len(produced) != 1:
         raise Skip("couldn't find the assembled output")
     shutil.copy2(produced[0], out_dir / f"ps_{n}.dxbc")

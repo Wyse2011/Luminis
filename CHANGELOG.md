@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.0.3
+
+**Fixes**
+- Characters could glow solid white on other players' screens (especially with Lightless) when a glow
+  layer was still syncing, or a material's glow layer slot pointed at the placeholder `dummy.tex`.
+  Placeholder glow layers (under 32 pixels) now never glow.
+- Fail-safe values: a Glow area, Glow mode or Debug view that this version doesn't know (from a newer
+  Luminis) now means no glow / off. Before, it could light up the whole item or turn it black.
+- The patcher now renames registers inside brackets, so epilogues that index a buffer at runtime read the
+  right values.
+- Builds no longer wait 1.1 seconds per shader (about 45 minutes saved on a full build).
+- The build re-extracts vanilla shaders automatically when the game's shader package changed, and only
+  picks date-named `vanilla` folders.
+- Packaging refuses shader packages from an older build, so every part of a release matches.
+
+**Note:** the white-glow fix runs on the viewer's side, so everyone should update to 2.0.3.
+
 ## 2.0
 
 **New: gear, minions, mounts and weapons**

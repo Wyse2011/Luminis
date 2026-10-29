@@ -130,9 +130,9 @@ After any game patch, assume Luminis is broken until checked.
 1. Post a notice for users to disable Luminis until an update is out.
 2. Run `python tools/luminis_game_extract.py --no-survey`; it creates `vanilla/<new game version>/`.
 3. Compare each package with the previous version (`fc /b vanilla\<old>\iris.shpk vanilla\<new>\iris.shpk`).
-   Unchanged packages need nothing. For changed ones, delete their `blobs/<name>` folder so it's
-   re-extracted.
-4. Rebuild the changed ones (`build_gear.py` covers both gear packages). Review any `SKIP` or `FAIL` lines: a changed shader structure may need an
+   Unchanged packages need nothing.
+4. Rebuild the changed ones (`build_gear.py` covers both gear packages). The build notices the changed
+   vanilla package and re-extracts its shaders automatically. Review any `SKIP` or `FAIL` lines: a changed shader structure may need an
    adjustment in `luminis_asm.py`. Check that each build declares `g_SamplerLuminis` and
    `g_SamplerLuminis2`, and that the eye build adds 48 bindings (three per shader).
 5. Restart the game, test eyes, hair and a glow mod, then package and publish.

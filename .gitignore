@@ -1,0 +1,31 @@
+# --- Square Enix game data and anything derived from it: never commit ---
+vanilla/
+blobs/
+decompiled/
+patched_src/
+compiled/
+reference/
+*.shpk
+*.dxbc
+*.shdr
+*.mtrl
+*.tex
+
+# --- Build output and test assets (releases go on the GitHub Release page) ---
+release/
+archive/
+textures/
+*.pmp
+
+# --- Third-party tools: link to them instead of committing them ---
+tools/3dmigoto/
+
+# --- Python ---
+__pycache__/
+*.pyc
+
+# --- Other game-derived or generated files ---
+*.mdl
+*.mtrl.bak
+*.zip
+merge/

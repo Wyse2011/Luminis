@@ -4,15 +4,22 @@
 // ============================================================================
 //
 // MATERIAL CONSTANT LAYOUT
-// 3 x float4 = 48 bytes. Append to the material cbuffer at a 16-byte aligned
-// offset after the vanilla parameters, and declare them in the .shpk's
-// material parameter list so Penumbra's material editor can expose them.
+// 19 x float4 in g_MaterialParameter slots 26..44 (added by shpk_add_params.py, which also
+// declares them in the .shpk so Penumbra's material editor can expose them):
 //
-//  Slot  Name             .x            .y              .z               .w
-//  +0    g_LuminisColor   tint R        tint G          tint B           intensity
-//  +1    g_LuminisLight   dark start    dark end        mode             sensitivity
-//  +2    g_LuminisMisc    color source  area mix        per-pixel sens.  debug view
-//  +3    g_LuminisDetail  detail        detail gain     (reserved)       (reserved)
+//  Slot  Name                  .x            .y             .z             .w
+//  26    g_LuminisColor        tint R        tint G         tint B         intensity
+//  27    g_LuminisLight        dark start    dark end       mode           sensitivity
+//  28    g_LuminisMisc         color source  area mix       glow area      debug view
+//  29    g_LuminisDetail       detail        detail gain    rainbow length rainbow shift
+//  30    g_LuminisHighlight    highlight tint RGB (hair)                   separate highlight
+//  31    g_LuminisAnim         mode          speed          steps          softness
+//  32-34 g_LuminisAnimColor*   colors 2, 3, 4 RGB                          (33/34.w: pulse min/max)
+//  35-40 g_LuminisL2*          the same for glow layer 2 (38.w: layer 2 color source)
+//  41-44 g_LuminisRows1..4     gear: per color table row 0 animated, 1 static, 2 off
+//
+// Fail-safe rule: a value this version doesn't know (glow area, glow mode, debug view) and a
+// placeholder glow layer always mean "no glow" / "off", never "glow everywhere".
 //
 //  Color src:  0 = tint only, 1 = the surface's own color, 2 = glow map (eyes: hue painted in a
 //              texture channel; hair: the Luminis texture's RGB), 3 = rainbow (hair: along the
@@ -23,7 +30,7 @@
 //  Area mix:   0 = react to light hitting each pixel (facing, shadows), 1 = react to
 //              overall area brightness only, values between blend the two
 //  Debug view: 0 = off, 1 = mask, 2 = light brightness, 3 = light gate,
-//              4 = final emissive only
+//              4 = final emissive only, 5 = clock, 6 = layer 2 mask, 7 = layer 2 light gate
 //
 // SHPK DEFAULTS (what unmodified materials get)
 //  g_LuminisColor = (1, 1, 1, 0)       <- intensity 0: never glows by accident
@@ -133,8 +140,9 @@ float Luminis_LightGate(float lightLum, float mode, float darkStart, float darkE
     float brightness = smoothstep(darkStart, hi, lightLum); // 0 = dark, 1 = bright
 
     int m = (int)round(mode);
-    float gate = 1.0;
-    if (m == LUMINIS_MODE_DARK)       gate = 1.0 - brightness;
+    float gate = 0.0;                                   // unknown (newer) modes: no glow
+    if (m == LUMINIS_MODE_ALWAYS)     gate = 1.0;
+    else if (m == LUMINIS_MODE_DARK)  gate = 1.0 - brightness;
     else if (m == LUMINIS_MODE_LIGHT) gate = brightness;
 
     // sensitivity 0 = ignore lighting entirely, 1 = full effect of the mode
@@ -159,6 +167,17 @@ float3 Luminis_HueRotate(float3 c, float shift)
     hsv.x = frac(hsv.x + shift);
     float3 rgb = saturate(abs(frac(hsv.xxx + float3(1.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0) - 1.0);
     return hsv.z * lerp(float3(1.0, 1.0, 1.0), rgb, hsv.y);
+}
+
+// A glow layer slot left on a placeholder (dummy.tex, a missing file, or a texture a sync plugin hasn't
+// delivered yet) must never glow: real glow layers are hundreds of pixels wide, placeholders are tiny.
+// Returns 1 for a usable glow layer, 0 for a placeholder.
+#define LUMINIS_MIN_LAYER_SIZE 32
+float Luminis_LayerValid(Texture2D<float4> t)
+{
+    uint w, h;
+    t.GetDimensions(w, h);
+    return (w >= LUMINIS_MIN_LAYER_SIZE && h >= LUMINIS_MIN_LAYER_SIZE) ? 1.0 : 0.0;
 }
 
 float3 Luminis_Animate(float3 source, float3 tint, float3 c2, float3 c3, float3 c4, float detailF,
@@ -270,7 +289,7 @@ LuminisOutput Luminis_Evaluate(LuminisInput i)
 
     LuminisOutput o;
     o.emissive    = baseColor * mask * intensity * gate * animGain + l2emit;
-    o.debugActive = (debugView != 0);
+    o.debugActive = (debugView >= 1 && debugView <= 7);   // unknown (newer) debug views: off
     o.debugColor  = float3(0.0, 0.0, 0.0);
 
     if (debugView == 1)      o.debugColor = mask.xxx;

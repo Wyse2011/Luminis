@@ -47,6 +47,8 @@ def check_shpk(path):
     blobs_off = struct.unpack_from("<I", d, 16)[0]
     if struct.pack("<I", luminis_id("g_LuminisColor")) not in d[:blobs_off]:
         sys.exit(f"STOPPED: {path} doesn't carry the Luminis parameters (still vanilla?). Rebuild it first.")
+    if struct.pack("<I", luminis_id("g_LuminisRows1")) not in d[:blobs_off]:
+        sys.exit(f"STOPPED: {path} is from an older Luminis build (no row settings). Rebuild it, so every part matches.")
     return d
 
 def main():
@@ -96,8 +98,8 @@ def main():
         for rel, data in files.items():
             z.writestr(rel.replace("\\", "/"), data)
     print(f"Wrote {out} ({out.stat().st_size / 1e6:.1f} MB)")
-    for label, name, _ in PARTS:
-        print(f"  {label}: shader/sm5/shpk/{name}.shpk + dev-kit")
+    for o in options:
+        print(f"  {o['Name']}: {next(iter(o['Files']))} + dev-kit")
     print("\nTo test: disable Luminis Dev, import the .pmp in Penumbra (Mods > Import), enable it, restart the game.")
 
 if __name__ == "__main__":
