@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.3
+## 2.0.4
 
 **Fixes**
 - Characters could glow solid white on other players' screens (especially with Lightless) when a glow
@@ -15,7 +15,7 @@
   picks date-named `vanilla` folders.
 - Packaging refuses shader packages from an older build, so every part of a release matches.
 
-**Note:** the white-glow fix runs on the viewer's side, so everyone should update to 2.0.3.
+**Note:** the white-glow fix runs on the viewer's side, so everyone should update to 2.0.4.
 
 ## 2.0
 
